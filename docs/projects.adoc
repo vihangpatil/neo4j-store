@@ -1,0 +1,32 @@
+= Projects
+
+== neo4j-store
+
+=== client
+Neo4jClient and Config classes used in setup at startup.
+
+=== common
+General utilities used internally.
+
+=== model
+`interface HasID` which is to be inherited by Entity classes, which are Kotlin Data classes.
+
+=== error
+Hierarchy of `class StoreError` used for the error case.
+
+
+=== schema
+
+== Examples
+
+=== model
+Contains entity classes, which are used by all 3 example clients.
+
+=== cypher-client
+Client working at cypher query level.
+
+=== store-client
+Client working at Entity and Relation Store level.
+
+=== dsl-client
+Client working at DSL level.

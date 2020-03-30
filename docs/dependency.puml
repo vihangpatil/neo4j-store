@@ -1,0 +1,12 @@
+@startuml
+
+[common] <.. [schema] : uses
+
+[error] <.. [schema] : uses
+
+[model-api] <.. [schema] : uses
+
+[common] <. [transaction] : uses
+
+
+@enduml

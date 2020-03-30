@@ -1,0 +1,14 @@
+= Developer guidelines
+
+== Checking for dependency updates
+
+----
+./gradlew dependencyUpdates -Drevision=release
+----
+
+== Checking for dependency resolution
+
+----
+./gradlew :prime:dependencyInsight --configuration runtimeClasspath --dependency dependency-name
+----
+

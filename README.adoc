@@ -1,0 +1,61 @@
+= Neo4j Store
+
+image:https://travis-ci.org/vihangpatil/neo4j-store.svg?branch=master[Build Status]
+image:https://img.shields.io/badge/kotlin-1.3.71-blue.svg[Kotlin version badge]
+image:https://img.shields.io/github/license/vihangpatil/neo4j-store.svg[GitHub license]
+
+== Objective
+To provide convenience wrapper around the `neo4j-java-driver` library for Kotlin.
+
+
+== Design
+
+Layered architecture where you can choose the level of convenience and control.
+
+
+== How to use
+
+
+=== Layer 1: Cypher
+
+You work directly on `cypher` queries.
+
+NOTE: For type-safety, it is recommended to use `EntityType` and `RelationType` in cypher queries.
+
+1. You create `Entity` and `Relation` Kotlin classes.
+2. Then use these classes to define schema using using `EntityType` and `RelationType`.
+
+So, the cypher queries will use string literals from `EntityType` and `RelationType`.
+Sample code is in link:[examples/cypher-client].
+
+=== Layer 2: Entity and Relation Stores
+
+NOTE: First two setups are from _Layer 1: Cypher_.
+
+1. You create `Entity` and `Relation` Kotlin classes.
+2. Then use these classes to define schema using using `EntityType` and `RelationType`.
+3. Then use these type classes to get their corresponding `EntityStore` and `RelationStore`.
+
+You then work on `EntityStore` and `RelationStore` to perform CRUD operations.
+Sample code is in link:[examples/store-client].
+
+=== Layer 3: DSL
+
+NOTE: First three setups are from _Layer 2: Entity and Relation Stores_.
+
+1. You create `Entity` and `Relation` Kotlin classes.
+2. Then use these classes to define schema using using `EntityType` and `RelationType`.
+3. Then use these type classes to get their corresponding `EntityStore` and `RelationStore`.
+4. Create DSL using Kotlin's language features such as `Kotlin DSL`, `extension function`, `infix` etc.
+
+You then work on DSL to perform CRUD operations.
+Sample code is in link:[examples/dsl-client].
+
+
+== Source
+
+This project was a module written by me named https://github.com/ostelco/ostelco-core/neo4j-store[neo4j-store] in a
+larger Open-Source mono-repo project - https://github.com/ostelco/ostelco-core[ostelco-core] with
+https://github.com/ostelco/ostelco-core/blob/develop/LICENSE[Apache License 2.0].
+The module has been ported out to be project of its own so that it can be used independently.
+The new project is made generic and does not take any code with business logic from its origin project.
