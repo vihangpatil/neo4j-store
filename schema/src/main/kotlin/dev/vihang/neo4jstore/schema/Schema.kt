@@ -18,8 +18,8 @@ import dev.vihang.neo4jstore.schema.Graph.read
 import dev.vihang.neo4jstore.schema.Graph.write
 import dev.vihang.neo4jstore.schema.ObjectHandler.getProperties
 import dev.vihang.neo4jstore.schema.ObjectHandler.getStringProperties
-import org.neo4j.driver.v1.StatementResult
-import org.neo4j.driver.v1.Transaction
+import org.neo4j.driver.Result
+import org.neo4j.driver.Transaction
 import kotlin.reflect.KClass
 
 
@@ -65,9 +65,9 @@ class EntityStore<E : HasId>(private val entityType: EntityType<E>) {
 
     fun get(id: String, transaction: Transaction): Either<StoreError, E> {
         return read("""MATCH (node:${entityType.name} {id: '$id'}) RETURN node;""",
-                transaction) { statementResult ->
-            if (statementResult.hasNext())
-                Either.right(entityType.createEntity(statementResult.single().get("node").asMap()))
+                transaction) { result ->
+            if (result.hasNext())
+                Either.right(entityType.createEntity(result.single().get("node").asMap()))
             else
                 Either.left(NotFoundError(type = entityType.name, id = id))
         }
@@ -83,7 +83,7 @@ class EntityStore<E : HasId>(private val entityType: EntityType<E>) {
             write(query = """CREATE (node:${entityType.name} ${'$'}props);""",
                     parameters = parameters,
                     transaction= transaction) {
-                if (it.summary().counters().nodesCreated() == 1)
+                if (it.consume().counters().nodesCreated() == 1)
                     Unit.right()
                 else
                     Either.left(NotCreatedError(type = entityType.name, id = entity.id))
@@ -102,9 +102,9 @@ class EntityStore<E : HasId>(private val entityType: EntityType<E>) {
                 MATCH (:${relationType.from.name} {id: '$id'})-[:${relationType.name}]->(node:${relationType.to.name})
                 RETURN node;
                 """.trimIndent(),
-                    transaction) { statementResult ->
+                    transaction) { result ->
                 Either.right(
-                        statementResult.list { record -> relationType.to.createEntity(record["node"].asMap()) })
+                        result.list { record -> relationType.to.createEntity(record["node"].asMap()) })
             }
         }
     }
@@ -120,9 +120,9 @@ class EntityStore<E : HasId>(private val entityType: EntityType<E>) {
                 MATCH (node:${relationType.from.name})-[:${relationType.name}]->(:${relationType.to.name} {id: '$id'})
                 RETURN node;
                 """.trimIndent(),
-                    transaction) { statementResult ->
+                    transaction) { result ->
                 Either.right(
-                        statementResult.list { record -> relationType.from.createEntity(record["node"].asMap()) })
+                        result.list { record -> relationType.from.createEntity(record["node"].asMap()) })
             }
         }
     }
@@ -135,9 +135,9 @@ class EntityStore<E : HasId>(private val entityType: EntityType<E>) {
             val parameters: Map<String, Any> = mapOf("props" to properties)
             write(query = """MATCH (node:${entityType.name} { id: '${entity.id}' }) SET node = ${'$'}props ;""",
                     parameters = parameters,
-                    transaction = transaction) { statementResult ->
+                    transaction = transaction) { result ->
                 Either.cond(
-                        test = statementResult.summary().counters().containsUpdates(), // TODO vihang: this is not perfect way to check if updates are applied
+                        test = result.consume().counters().containsUpdates(), // TODO vihang: this is not perfect way to check if updates are applied
                         ifTrue = {},
                         ifFalse = { NotUpdatedError(type = entityType.name, id = entity.id) })
             }
@@ -153,9 +153,9 @@ class EntityStore<E : HasId>(private val entityType: EntityType<E>) {
         return exists(id, transaction).flatMap {
             write(query = """MATCH (node:${entityType.name} { id: '$id' }) SET node += ${'$'}props ;""",
                     parameters = parameters,
-                    transaction = transaction) { statementResult ->
+                    transaction = transaction) { result ->
                 Either.cond(
-                        test = statementResult.summary().counters().containsUpdates(), // TODO vihang: this is not perfect way to check if updates are applied
+                        test = result.consume().counters().containsUpdates(), // TODO vihang: this is not perfect way to check if updates are applied
                         ifTrue = {},
                         ifFalse = { NotUpdatedError(type = entityType.name, id = id) })
             }
@@ -165,9 +165,9 @@ class EntityStore<E : HasId>(private val entityType: EntityType<E>) {
     fun delete(id: String, transaction: Transaction): Either<StoreError, Unit> =
             exists(id, transaction).flatMap {
                 write("""MATCH (node:${entityType.name} {id: '$id'} ) DETACH DELETE node;""",
-                        transaction) { statementResult ->
+                        transaction) { result ->
                     Either.cond(
-                            test = statementResult.summary().counters().nodesDeleted() == 1,
+                            test = result.consume().counters().nodesDeleted() == 1,
                             ifTrue = {},
                             ifFalse = { NotDeletedError(type = entityType.name, id = id) })
                 }
@@ -175,18 +175,18 @@ class EntityStore<E : HasId>(private val entityType: EntityType<E>) {
 
     fun exists(id: String, transaction: Transaction): Either<StoreError, Unit> =
             read("""MATCH (node:${entityType.name} {id: '$id'} ) RETURN count(node);""",
-                    transaction) { statementResult ->
+                    transaction) { result ->
                 Either.cond(
-                        test = statementResult.single()["count(node)"].asInt(0) == 1,
+                        test = result.single()["count(node)"].asInt(0) == 1,
                         ifTrue = {},
                         ifFalse = { NotFoundError(type = entityType.name, id = id) })
             }
 
     private fun doNotExist(id: String, transaction: Transaction): Either<StoreError, Unit> =
             read("""MATCH (node:${entityType.name} {id: '$id'} ) RETURN count(node);""",
-                    transaction) { statementResult ->
+                    transaction) { result ->
                 Either.cond(
-                        test = statementResult.single()["count(node)"].asInt(1) == 0,
+                        test = result.single()["count(node)"].asInt(1) == 0,
                         ifTrue = {},
                         ifFalse = { AlreadyExistsError(type = entityType.name, id = id) })
             }
@@ -208,11 +208,11 @@ class RelationStore<FROM : HasId, RELATION, TO : HasId>(private val relationType
                     CREATE (from)-[:${relationType.name} ${'$'}props ]->(to);
                     """.trimIndent(),
                 parameters = parameters,
-                transaction = transaction) { statementResult ->
+                transaction = transaction) { result ->
 
             // TODO vihang: validate if 'from' and 'to' node exists
             Either.cond(
-                    test = statementResult.summary().counters().relationshipsCreated() == 1,
+                    test = result.consume().counters().relationshipsCreated() == 1,
                     ifTrue = {},
                     ifFalse = { NotCreatedError(type = relationType.name, id = "${from.id} -> ${to.id}") })
         }
@@ -222,11 +222,11 @@ class RelationStore<FROM : HasId, RELATION, TO : HasId>(private val relationType
                 MATCH (from:${relationType.from.name} { id: '${from.id}' }),(to:${relationType.to.name} { id: '${to.id}' })
                 CREATE (from)-[:${relationType.name}]->(to);
                 """.trimIndent(),
-            transaction) { statementResult ->
+            transaction) { result ->
 
         // TODO vihang: validate if 'from' and 'to' node exists
         Either.cond(
-                test = statementResult.summary().counters().relationshipsCreated() == 1,
+                test = result.consume().counters().relationshipsCreated() == 1,
                 ifTrue = {},
                 ifFalse = { NotCreatedError(type = relationType.name, id = "${from.id} -> ${to.id}") })
     }
@@ -235,11 +235,11 @@ class RelationStore<FROM : HasId, RELATION, TO : HasId>(private val relationType
                 MATCH (from:${relationType.from.name} { id: '$fromId' }),(to:${relationType.to.name} { id: '$toId' })
                 CREATE (from)-[:${relationType.name}]->(to);
                 """.trimIndent(),
-            transaction) { statementResult ->
+            transaction) { result ->
 
         // TODO vihang: validate if 'from' and 'to' node exists
         Either.cond(
-                test = statementResult.summary().counters().relationshipsCreated() == 1,
+                test = result.consume().counters().relationshipsCreated() == 1,
                 ifTrue = {},
                 ifFalse = { NotCreatedError(type = relationType.name, id = "$fromId -> $toId") })
     }
@@ -253,11 +253,11 @@ class RelationStore<FROM : HasId, RELATION, TO : HasId>(private val relationType
                 CREATE (from)-[:${relationType.name} ${'$'}props ]->(to);
                 """.trimIndent(),
                 parameters = parameters,
-                transaction = transaction) { statementResult ->
+                transaction = transaction) { result ->
 
             // TODO vihang: validate if 'from' and 'to' node exists
             Either.cond(
-                    test = statementResult.summary().counters().relationshipsCreated() == 1,
+                    test = result.consume().counters().relationshipsCreated() == 1,
                     ifTrue = {},
                     ifFalse = { NotCreatedError(type = relationType.name, id = "$fromId -> $toId") })
         }
@@ -271,9 +271,9 @@ class RelationStore<FROM : HasId, RELATION, TO : HasId>(private val relationType
                 MATCH (from:${relationType.from.name} { id: '$fromId' })
                 CREATE (from)-[:${relationType.name}]->(to);
                 """.trimIndent(),
-            transaction) { statementResult ->
+            transaction) { result ->
         // TODO vihang: validate if 'from' and 'to' node exists
-        val actualCount = statementResult.summary().counters().relationshipsCreated()
+        val actualCount = result.consume().counters().relationshipsCreated()
         Either.cond(
                 test = actualCount == toIds.size,
                 ifTrue = {},
@@ -293,10 +293,10 @@ class RelationStore<FROM : HasId, RELATION, TO : HasId>(private val relationType
                 MATCH (to:${relationType.to.name} { id: '$toId' })
                 CREATE (from)-[:${relationType.name}]->(to);
                 """.trimIndent(),
-            transaction) { statementResult ->
+            transaction) { result ->
 
         // TODO vihang: validate if 'from' and 'to' node exists
-        val actualCount = statementResult.summary().counters().relationshipsCreated()
+        val actualCount = result.consume().counters().relationshipsCreated()
         Either.cond(
                 test = actualCount == fromIds.size,
                 ifTrue = {},
@@ -320,8 +320,8 @@ class RelationStore<FROM : HasId, RELATION, TO : HasId>(private val relationType
                 MATCH (:${relationType.from.name} { id: '$fromId' })-[r:${relationType.name}]-(:${relationType.to.name} { id: '$toId' })
                 return r;
                 """.trimIndent(),
-                            transaction) { statementResult ->
-                        statementResult.list { record -> relationType.createRelation(record["r"].asMap()) }
+                            transaction) { result ->
+                        result.list { record -> relationType.createRelation(record["r"].asMap()) }
                                 .right()
                     }
                 }
@@ -340,9 +340,9 @@ class RelationStore<FROM : HasId, RELATION, TO : HasId>(private val relationType
                 MATCH (:${relationType.from.name} { id: '$fromId'})-[r:${relationType.name}]->(:${relationType.to.name} {id: '$toId'})
                 DELETE r
                 """.trimMargin(),
-            transaction) { statementResult ->
+            transaction) { result ->
 
-        Either.cond(statementResult.summary().counters().relationshipsDeleted() > 0,
+        Either.cond(result.consume().counters().relationshipsDeleted() > 0,
                 ifTrue = { Unit },
                 ifFalse = { NotDeletedError(relationType.name, "$fromId -> $toId") })
     }
@@ -365,9 +365,9 @@ class UniqueRelationStore<FROM : HasId, RELATION, TO : HasId>(private val relati
                                     MATCH (fromId:${relationType.from.name} {id: '$fromId'}),(toId:${relationType.to.name} {id: '$toId'})
                                     MERGE (fromId)-[:${relationType.name}]->(toId)
                                     """.trimMargin(),
-                                        transaction) { statementResult ->
+                                        transaction) { result ->
 
-                                    Either.cond(statementResult.summary().counters().relationshipsCreated() == 1,
+                                    Either.cond(result.consume().counters().relationshipsCreated() == 1,
                                             ifTrue = { Unit },
                                             ifFalse = { NotCreatedError(relationType.name, "$fromId -> $toId") })
                                 }
@@ -394,9 +394,9 @@ class UniqueRelationStore<FROM : HasId, RELATION, TO : HasId>(private val relati
                                     MATCH (fromId:${relationType.from.name} {id: '$fromId'}),(toId:${relationType.to.name} {id: '$toId'})
                                     MERGE (fromId)-[:${relationType.name} { $strProps } ]->(toId)
                                     """.trimMargin(),
-                                        transaction) { statementResult ->
+                                        transaction) { result ->
 
-                                    Either.cond(statementResult.summary().counters().relationshipsCreated() == 1,
+                                    Either.cond(result.consume().counters().relationshipsCreated() == 1,
                                             ifTrue = { Unit },
                                             ifFalse = { NotCreatedError(relationType.name, "$fromId -> $toId") })
                                 }
@@ -420,9 +420,9 @@ class UniqueRelationStore<FROM : HasId, RELATION, TO : HasId>(private val relati
                                 write(
                                         """MATCH (fromId:${relationType.from.name} {id: '$fromId'})-[r:${relationType.name}]->(toId:${relationType.to.name} {id: '$toId'})
                                     $setClause ;""".trimMargin(),
-                                        transaction) { statementResult ->
+                                        transaction) { result ->
                                     Either.cond(
-                                            test = statementResult.summary().counters().containsUpdates(), // TODO vihang: this is not perfect way to check if updates are applied
+                                            test = result.consume().counters().containsUpdates(), // TODO vihang: this is not perfect way to check if updates are applied
                                             ifTrue = {},
                                             ifFalse = { NotUpdatedError(type = relationType.name, id = "$fromId -> $toId") })
                                 }
@@ -435,9 +435,9 @@ class UniqueRelationStore<FROM : HasId, RELATION, TO : HasId>(private val relati
                                 MATCH (fromId:${relationType.from.name} {id: '$fromId'}),(toId:${relationType.to.name} {id: '$toId'})
                                 MERGE (fromId)-[:${relationType.name} { $strProps } ]->(toId)
                                 """.trimMargin(),
-                                        transaction) { statementResult ->
+                                        transaction) { result ->
 
-                                    Either.cond(statementResult.summary().counters().relationshipsCreated() == 1,
+                                    Either.cond(result.consume().counters().relationshipsCreated() == 1,
                                             ifTrue = { Unit },
                                             ifFalse = { NotCreatedError(relationType.name, "$fromId -> $toId") })
                                 }
@@ -454,9 +454,9 @@ class UniqueRelationStore<FROM : HasId, RELATION, TO : HasId>(private val relati
                         MATCH (fromId:${relationType.from.name} {id: '$fromId'}),(toId:${relationType.to.name} {id: '$toId'})
                         MERGE (fromId)-[:${relationType.name}]->(toId)
                         """.trimMargin(),
-                    transaction) { statementResult ->
+                    transaction) { result ->
 
-                Either.cond(statementResult.summary().counters().relationshipsCreated() == 1,
+                Either.cond(result.consume().counters().relationshipsCreated() == 1,
                         ifTrue = { Unit },
                         ifFalse = { NotCreatedError(relationType.name, "$fromId -> $toId") })
             }
@@ -475,9 +475,9 @@ class UniqueRelationStore<FROM : HasId, RELATION, TO : HasId>(private val relati
                         MATCH (fromId:${relationType.from.name} {id: '$fromId'}),(toId:${relationType.to.name} {id: '$toId'})
                         MERGE (fromId)-[:${relationType.name}  { $strProps } ]->(toId)
                         """.trimMargin(),
-                    transaction) { statementResult ->
+                    transaction) { result ->
 
-                Either.cond(statementResult.summary().counters().relationshipsCreated() == 1,
+                Either.cond(result.consume().counters().relationshipsCreated() == 1,
                         ifTrue = { Unit },
                         ifFalse = { NotCreatedError(relationType.name, "$fromId -> $toId") })
             }
@@ -488,10 +488,10 @@ class UniqueRelationStore<FROM : HasId, RELATION, TO : HasId>(private val relati
                 MATCH (:${relationType.from.name} {id: '$fromId'})-[r:${relationType.name}]->(:${relationType.to.name} {id: '$toId'})
                 RETURN r
                 """.trimMargin(),
-            transaction) { statementResult ->
+            transaction) { result ->
 
-        Either.cond(statementResult.hasNext(),
-                ifTrue = { relationType.createRelation(statementResult.single()["r"].asMap()) },
+        Either.cond(result.hasNext(),
+                ifTrue = { relationType.createRelation(result.single()["r"].asMap()) },
                 ifFalse = { NotFoundError(relationType.name, "$fromId -> $toId") })
                 .flatMap {
                     relation -> relation?.right() ?: NotFoundError(relationType.name, "$fromId -> $toId").left()
@@ -502,9 +502,9 @@ class UniqueRelationStore<FROM : HasId, RELATION, TO : HasId>(private val relati
                 MATCH (:${relationType.from.name} { id: '$fromId'})-[r:${relationType.name}]->(:${relationType.to.name} {id: '$toId'})
                 DELETE r
                 """.trimMargin(),
-            transaction) { statementResult ->
+            transaction) { result ->
 
-        Either.cond(statementResult.summary().counters().relationshipsDeleted() == 1,
+        Either.cond(result.consume().counters().relationshipsDeleted() == 1,
                 ifTrue = { Unit },
                 ifFalse = { NotDeletedError(relationType.name, "$fromId -> $toId") })
     }
@@ -513,10 +513,10 @@ class UniqueRelationStore<FROM : HasId, RELATION, TO : HasId>(private val relati
                 MATCH (:${relationType.from.name} {id: '$fromId'})-[r:${relationType.name}]->(:${relationType.to.name} {id: '$toId'})
                 RETURN count(r)
                 """.trimMargin(),
-            transaction) { statementResult ->
+            transaction) { result ->
 
         Either.cond(
-                test = statementResult.single()["count(r)"].asInt(1) == 0,
+                test = result.single()["count(r)"].asInt(1) == 0,
                 ifTrue = {},
                 ifFalse = { AlreadyExistsError(type = relationType.name, id = "$fromId -> $toId") })
 
@@ -530,12 +530,12 @@ object Graph {
 
     private val LOG by getLogger()
 
-    fun <R> write(query: String, transaction: Transaction, parameters: Map<String, Any> = emptyMap(), transform: (StatementResult) -> R): R {
+    fun <R> write(query: String, transaction: Transaction, parameters: Map<String, Any> = emptyMap(), transform: (Result) -> R): R {
         LOG.trace("write:[\n$query\n]")
         return transaction.run(query, parameters).let(transform)
     }
 
-    fun <R> read(query: String, transaction: Transaction, parameters: Map<String, Any> = emptyMap(), transform: (StatementResult) -> R): R {
+    fun <R> read(query: String, transaction: Transaction, parameters: Map<String, Any> = emptyMap(), transform: (Result) -> R): R {
         LOG.trace("read:[\n$query\n]")
         return transaction.run(query, parameters).let(transform)
     }

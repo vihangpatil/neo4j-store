@@ -4,9 +4,9 @@ import arrow.core.Either
 import dev.vihang.common.logging.getLogger
 import dev.vihang.neo4jstore.transaction.ActionType.FINAL
 import dev.vihang.neo4jstore.transaction.ActionType.REVERSAL
-import org.neo4j.driver.v1.Transaction
+import org.neo4j.driver.Transaction
 
-class PrimeTransaction(private val transaction: Transaction) : Transaction by transaction {
+class ExtendedTransaction(private val transaction: Transaction) : Transaction by transaction {
 
     private val logger by getLogger()
 
@@ -32,9 +32,9 @@ class PrimeTransaction(private val transaction: Transaction) : Transaction by tr
         toActionList(actionType).add(action)
     }
 
-    override fun failure() {
+    override fun rollback() {
         success = false
-        transaction.failure()
+        transaction.rollback()
     }
 
     override fun close() {
@@ -54,12 +54,12 @@ enum class ActionType {
 typealias Action<P> = (P) -> Unit
 
 private fun <L, R> Either<L, R>.addAction(
-        primeTransaction: PrimeTransaction,
+        extendedTransaction: ExtendedTransaction,
         action: Action<R>,
         actionType: ActionType): Either<L, R> {
 
     this.map { param ->
-        primeTransaction.addAction(actionType) {
+        extendedTransaction.addAction(actionType) {
             action(param)
         }
     }
@@ -67,14 +67,14 @@ private fun <L, R> Either<L, R>.addAction(
 }
 
 fun <L, R> Either<L, R>.linkReversalActionToTransaction(
-        primeTransaction: PrimeTransaction,
-        reversalAction: Action<R>): Either<L, R> = addAction(primeTransaction, reversalAction, REVERSAL)
+        extendedTransaction: ExtendedTransaction,
+        reversalAction: Action<R>): Either<L, R> = addAction(extendedTransaction, reversalAction, REVERSAL)
 
 fun <L, R> Either<L, R>.finallyDo(
-        primeTransaction: PrimeTransaction,
-        finalAction: Action<R>): Either<L, R> = addAction(primeTransaction, finalAction, FINAL)
+        extendedTransaction: ExtendedTransaction,
+        finalAction: Action<R>): Either<L, R> = addAction(extendedTransaction, finalAction, FINAL)
 
-fun <L, R> Either<L, R>.ifFailedThenRollback(primeTransaction: PrimeTransaction): Either<L, R> = mapLeft { error ->
-    primeTransaction.failure()
+fun <L, R> Either<L, R>.ifFailedThenRollback(extendedTransaction: ExtendedTransaction): Either<L, R> = mapLeft { error ->
+    extendedTransaction.rollback()
     error
 }
