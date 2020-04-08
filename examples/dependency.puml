@@ -1,0 +1,27 @@
+@startuml
+
+node neo4j-store {
+    [client]
+    [model]
+    [schema]
+    [dsl]
+}
+
+node exmaples {
+    [model-client]
+    [cypher-client]
+    [store-client]
+    [dsl-client]
+}
+
+[model] <.. [model-client] : uses
+
+[client] <.. [cypher-client] : uses
+
+[schema] <.. [store-client] : uses
+[model-client] <.. [store-client] : uses
+
+[dsl] <.. [dsl-client] : uses
+[model-client] <.. [dsl-client] : uses
+
+@enduml

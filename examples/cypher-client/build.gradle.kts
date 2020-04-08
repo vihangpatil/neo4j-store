@@ -4,5 +4,6 @@ plugins {
 }
 
 dependencies {
-  implementation(project(":schema"))
+  implementation(kotlin("stdlib-jdk8"))
+  implementation(project(":client"))
 }

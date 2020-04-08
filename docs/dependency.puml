@@ -1,12 +1,18 @@
 @startuml
 
+[common] <.. [client] : uses
+
 [common] <.. [schema] : uses
 
 [error] <.. [schema] : uses
 
-[model-api] <.. [schema] : uses
+[model] <.. [schema] : uses
 
-[common] <. [transaction] : uses
+[client] <.. [schema] : uses
+
+[schema] <.. [dsl] : uses
+
+[common] <... [transaction] : uses
 
 
 @enduml
