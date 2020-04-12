@@ -1,0 +1,74 @@
+= Layered Architecture
+
+Layered architecture where you can choose the level of convenience and control.
+
+
+[ditaa]
+----
+
+           +-------------------------------+
+           |                               |
+           +------------+                  |
+ Layer 3   |            |       dsl        |
+           | dsl-model  |                  |
+           |            |                  |
+           +------------+------------------+
+           |            |                  |
+           |            +-------+          |
+ Layer 2   |                    |  schema  |
+           |  schema-model      |          |
+           |                    |          |
+           +--------------------+----------+
+           |                    |          |
+ Layer 1   |     model          |  client  |
+           |                    |          |
+           +--------------------+----------+
+
+----
+
+== How to use
+
+
+=== Layer 1: Cypher
+
+You work directly on `cypher` queries.
+
+NOTE: For type-safety, it is recommended to use `EntityType` and `RelationType` in cypher queries.
+
+1. You create `Entity` and `Relation` Kotlin classes.
+2. Then use these classes to define schema using `EntityType` and `RelationType`.
+
+So, the cypher queries will use string literals from `EntityType` and `RelationType`. +
+Sample code is in link:[examples/cypher-client].
+
+=== Layer 2: Entity and Relation Stores
+
+NOTE: First two setups are from _Layer 1: Cypher_.
+
+1. You create `Entity` and `Relation` Kotlin classes.
+2. Then use these classes to define schema using `EntityType` and `RelationType`.
+3. Then use these type classes to get their corresponding `EntityStore` and `RelationStore`.
+
+You then work on *stores* - `EntityStore` and `RelationStore` to perform CRUD operations. +
+Sample code is in link:[examples/store-client].
+
+=== Layer 3: DSL
+
+NOTE: First three setups are from _Layer 2: Entity and Relation Stores_.
+
+1. You create `Entity` and `Relation` Kotlin classes.
+2. Then use these classes to define schema using `EntityType` and `RelationType`.
+3. Then use these type classes to get their corresponding `EntityStore` and `RelationStore`.
+4. Create DSL using Kotlin's language features such as `Kotlin DSL`, `extension function`, `infix` etc.
+
+You then work on DSL to perform CRUD operations. +
+Sample code is in link:[examples/dsl-client].
+
+=== Layer 3: Auto-generated DSL
+
+1. You create `Entity` Kotlin classes.
+2. Add `@Entity` and `@Relation` annotations on the Entity classes.
+3. Use `dsl-annotation-processor` to generate auto-generate DSL.
+
+You then work on DSL to perform CRUD operations. +
+Sample code is in link:[examples/dsl-kapt-client].

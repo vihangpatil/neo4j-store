@@ -4,6 +4,5 @@ plugins {
 }
 
 dependencies {
-  implementation(project(":examples:model-client"))
   implementation(project(":schema"))
 }

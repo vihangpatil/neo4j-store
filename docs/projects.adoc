@@ -1,32 +1,160 @@
 = Projects
 
+[plantuml]
+----
+[Layer 1 : cypher-client]
+[Layer 2 : schema-client]
+[Layer 3 : dsl-client]
+[Layer 3 : dsl-kapt-client]
+
+package "neo4j-store" {
+
+    package "Layer 3 : DSL" {
+        [dsl]
+        [dsl-model]
+        [dsl-model-annotation]
+        [dsl-annotation-processor]
+
+[dsl-model-annotation] <.. [dsl-annotation-processor] : impl
+[dsl-model] <-- [dsl] : api
+    }
+
+    package "Layer 2 : Entity and Relation Stores" {
+        [schema]
+        [schema-model]
+
+[schema] --> [schema-model] : api
+    }
+
+[dsl-model] --->  [schema-model] : api
+[dsl] ---> [schema] : api
+
+    package "Layer 1 : Raw Cypher queries" {
+        [client]
+        [error]
+        [transaction]
+    }
+
+    package "Util" {
+        [common]
+    }
+
+    package "Model" {
+        [model]
+    }
+
+[client] --> [common] : api
+[transaction] ..> [common] : impl
+
+
+[schema-model] ---> [model] : api
+[schema] ---> [client] : api
+[schema] ----> [error] : api
+
+}
+
+[Layer 1 : cypher-client] -right-> [client] : uses
+
+[Layer 2 : schema-client] -right-> [schema] : uses
+[Layer 2 : schema-client] -right-> [schema-model] : uses
+
+[Layer 3 : dsl-client] --> [dsl] : uses
+[Layer 3 : dsl-client] --> [dsl-model]: uses
+
+[Layer 3 : dsl-kapt-client] ..> [dsl] : uses
+[Layer 3 : dsl-kapt-client] ..> [dsl-model]: uses
+[Layer 3 : dsl-kapt-client] --> [dsl-annotation-processor]: codegen
+[Layer 3 : dsl-kapt-client] --> [dsl-model-annotation]: codegen
+----
+
 == neo4j-store
 
-=== client
-Neo4jClient and Config classes used in setup at startup.
+'''
 
-=== common
+=== Common Utils
+
+==== common
+
 General utilities used internally.
 
+'''
+
 === model
+
 `interface HasID` which is to be inherited by Entity classes, which are Kotlin Data classes.
 
-=== error
+'''
+
+=== Layer 1 : Raw Cypher queries
+
+==== client
+
+Neo4jClient and Config classes used in setup at startup.
+
+==== error
+
 Hierarchy of `class StoreError` used for the error case.
 
+==== transaction
 
-=== schema
+Extend Neo4j transaction with custom rollback actions.
+
+'''
+
+=== Layer 2 : Entity and Relation Stores
+
+==== schema
+
+Has implementation of `*EntityType*`, `*EntityStore*`, `*RelationType*` and `*RelationStore*`. +
+Any _Kotlin data class_ can be used to define `EntityType`.
+`EntityType` is then used by `EntityStore`. +
+`_FROM_` and `_TO_` `EntityType` along with `Relation` is used to define `RelationType`. +
+`RelationType` is then used by `RelationStore`.
+
+==== schema-model
+
+Has classes needed to define `*Relation*`, which is then used in `RelationType`.
+
+'''
+
+=== Layer 3 : DSL
+
+==== dsl-model-annotation
+
+Has `*Entity*` and `*Relation*` annotations to be used on Kotlin data class to define Entities and Relations. +
+This library is needed as `compileOnly` dependencies since these annotations are absent at runtime.
+
+==== dsl-annotation-processor
+
+This is Koltin Annotation processor library which auto-generates code containing Entity-Relation specific DSL functions.
+
+==== dsl-model
+
+Contains DSL grammar context classes which are used by `dsl` project. +
+Needed only if you want to write DSL instead of auto-generating using _kapt_.
+
+==== dsl
+
+Internally uses `*schema*` project and abstracts (hides complexity) behind a convenient DSL. +
+It has generic DSL functions. +
+Developer then uses these generic DSL functions along with Entity-Relation specific DSL functions to perform Neo4j DB operations.
+
+[NOTE]
+====
+You may also choose to write your own DSL instead of using auto-generated one. +
+In that case, you do not need `dsl-model-annotation` and `dsl-annotation-processor` projects.
+====
 
 == Examples
 
-=== model
-Contains entity classes, which are used by all 3 example clients.
-
 === cypher-client
+
 Client working at cypher query level.
 
 === store-client
+
 Client working at Entity and Relation Store level.
 
-=== dsl-client
+=== dsl-client and dsl-kapt-client
+
 Client working at DSL level.

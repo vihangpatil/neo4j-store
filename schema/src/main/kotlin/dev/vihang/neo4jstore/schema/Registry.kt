@@ -8,16 +8,21 @@ import kotlin.reflect.KClass
 object EntityRegistry {
 
     private val entityTypeMap = mutableMapOf<KClass<out HasId>, EntityType<out HasId>>()
+    private val entityStoreMap = mutableMapOf<KClass<out HasId>, EntityStore<out HasId>>()
 
     fun <E : HasId> getEntityType(kClass: KClass<E>): EntityType<E> {
-        return (entityTypeMap as MutableMap<KClass<E>, EntityType<E>>).getOrPut(kClass) {
-            val entityType = EntityType(kClass.java)
-            EntityStore(entityType)
-            entityType
-        }
+        return (entityTypeMap as MutableMap<KClass<E>, EntityType<E>>)
+                .getOrPut(kClass) {
+                    EntityType(dataClass = kClass)
+                }
     }
 
-    fun <E : HasId> getEntityStore(kClass: KClass<E>): EntityStore<E> = getEntityType(kClass).entityStore
+    fun <E : HasId> getEntityStore(kClass: KClass<E>): EntityStore<E> {
+        val entityType = getEntityType(kClass)
+        return (entityStoreMap as MutableMap<KClass<E>, EntityStore<E>>).getOrPut(kClass) {
+            EntityStore(entityClass = kClass, entityType = entityType)
+        }
+    }
 }
 
 val <E : HasId> KClass<E>.entityType: EntityType<E>

@@ -7,12 +7,8 @@ import dev.vihang.neo4jstore.client.ConfigRegistry
 import dev.vihang.neo4jstore.client.Neo4jClient
 import dev.vihang.neo4jstore.client.writeTransaction
 import dev.vihang.neo4jstore.error.StoreError
-import dev.vihang.neo4jstore.examples.model.Role
-import dev.vihang.neo4jstore.examples.model.User
-import dev.vihang.neo4jstore.examples.model.hasRoleRelation
 import dev.vihang.neo4jstore.schema.EntityStore
-import dev.vihang.neo4jstore.schema.EntityType
-import dev.vihang.neo4jstore.schema.None
+import dev.vihang.neo4jstore.schema.model.None
 import dev.vihang.neo4jstore.schema.RelationType
 import dev.vihang.neo4jstore.schema.UniqueRelationStore
 
@@ -23,19 +19,13 @@ fun main() {
     Neo4jClient.start()
 
     try {
-        // using entity classes in `examples/model` project, create [EntityType]
-        val userEntityType = EntityType(User::class.java)
-        val roleEntityType = EntityType(Role::class.java)
+        // using [Entity], create [EntityStore]
+        val userStore = EntityStore(User::class)
+        val roleStore = EntityStore(Role::class)
 
-        // using [EntityType], create [EntityStore]
-        val userStore = EntityStore(userEntityType)
-        val roleStore = EntityStore(roleEntityType)
-
-        val hasRoleType = RelationType(
+        val hasRoleType = RelationType<User, None, Role>(
                 relation = hasRoleRelation,
-                from = userEntityType,
-                to = roleEntityType,
-                dataClass = None::class.java
+                dataClass = None::class
         )
 
         val hasRoleStore = UniqueRelationStore(relationType = hasRoleType)

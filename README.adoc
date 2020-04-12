@@ -1,56 +1,158 @@
 = Neo4j Store
+:source-highlighter: highlightjs
 
 image:https://travis-ci.org/vihangpatil/neo4j-store.svg?branch=master[Build Status]
 image:https://img.shields.io/badge/kotlin-1.3.71-blue.svg[Kotlin version badge]
 image:https://img.shields.io/github/license/vihangpatil/neo4j-store.svg[GitHub license]
 
-== Objective
-To provide convenience wrapper around the `neo4j-java-driver` library for Kotlin.
+[WARNING]
+====
+Experimental
+====
+
+link:https://neo4j.com/neo4j-graph-database/[Neo4j Graph Database] client for link:https://kotlinlang.org/[Koltin] + link:https://gradle.org/[Gradle] project. +
+Layered architecture exposing multiple levels of API.
+Recommended top-level DSL API enables you to perform DB operations in *declarative type-safe semantics specific to your domain*.
+Based on the _verbs_ used in your _Entity-Relation_ definitions (see <<Define Entities and Relations>>),
+custom DSL is auto-generated with semantic verbs as method names.
+
+== Quick Start
+
+In this example, we have ...
+
+1. Two entities - `(User)` and `(Role)`
+2. Directed relation _from User to Role_ - `(User)-[HAS_ROLE]->(Role)`.
+
+First you have to <<Define Entities and Relations>>. +
+Based on those definitions, custom DSL methods will be auto-generated for you.
+
+Then you can do operations on *_Entities_* such as ...
+
+[source,kotlin]
+----
+
+// create
+create { User(id = "foo", name = "Jane Doe") }
+
+// read
+val user = get( User withId "foo" )
+
+// update
+update { User(id = "foo", name = "John Doe") }
+
+// delete
+delete { User withId "foo" }
+----
+
+And operations on _Entity **Relations**_ such as
+
+[source,kotlin]
+----
+// create
+link { (User withId "foo") hasRole (Role withId "admin") }
+
+// read
+val user = get( User withRole (Role withId "admin"))
+val role = get( Role ofUser (User withId "foo"))
+
+// delete
+unlink { (User withId "foo") hasRole (Role withId "admin") }
+----
+
+[NOTE]
+====
+* Here, methods such as `*withId*`, `*hasRole*`, `*withRole*` and `*ofUser*` will be provided by auto-generated code by Kotlin Annotation Processor (kapt).
+* So, advanced users can also *write methods which are missing in auto-generated code*.
+* But, generic methods such as `*create*`, `*get*`, `*update*`, `*delete*`, `*link*` and `*unlink*` are part of `dsl` and not auto-generated.
+====
 
 
-== Design
+=== Define Entities and Relations
 
-Layered architecture where you can choose the level of convenience and control.
+For e.g., to define...
 
+ 1. entities - `(User)` and `(Role)`
+ 2. relation `(User)-[HAS_ROLE]->(Role)`.
 
-== How to use
+[source,kotlin]
+----
+package dev.vihang.neo4jstore.examples.dslclient
 
+import dev.vihang.neo4jstore.model.HasId
+import dev.vihang.neo4jstore.dsl.model.annotation.Entity
+import dev.vihang.neo4jstore.dsl.model.annotation.Relation
 
-=== Layer 1: Cypher
+@Entity                             // <4>
+@Relation(                          // <5>
+        name = "HAS_ROLE",                                          // <6>
+        to = "dev.vihang.neo4jstore.examples.dslclient.Role",       // <7>
+        forwardRelation = "hasRole", // [User] hasRole [Role]       // <8>
+        reverseRelation = "ofUser",  // [Role] ofUser [User]        // <8>
+        forwardQuery = "withRole",   // get(User withRole [Role])   // <9>
+        reverseQuery = "ofUser")     // get(Role ofUser [User])     // <9>
+data class User(                    // <1>
+        override val id: String,    // <2>
+        val name: String
+) : HasId {                         // <2>
+    // Needed for DSL
+    companion object                // <3>
+}
 
-You work directly on `cypher` queries.
+@Entity                             // <4>
+data class Role(                    // <1>
+        override val id: String,    // <2>
+        val description: String
+) : HasId {                         // <2>
+    // Needed for DSL
+    companion object                // <3>
+}
+----
+*To define an Entity (steps 1 to 4) and Relation (steps 5 onwards):*
 
-NOTE: For type-safety, it is recommended to use `EntityType` and `RelationType` in cypher queries.
+<1> Create Entity class as simple Koltin `data class`. Name of the class will be used as label in Neo4j nodes.
+<2> Make entity classes implement `interface HasId` and hence add a field `override val id: String`.
+<3> Add `companion object` for entity classes. It is used to add extension functions such as `withId` for the DSL such
+    as `get( User withId "foo" )`.
+<4> Add `@Entity` annotation to the entity class.
+<5> Only on *from* entity of a directed relation, add `@Relation` annotation. +
+    In this example, the relation is *from* `User` entity.
+<6> `*name*` of the relation has to be *capital snake case* (i.e., separated by underscore). It will be used as label in Neo4j relations.
+<7> `*to*` of the relation is the *to* entity class's qualified name, i.e., including package name.
+<8> `*forwardRelation*` and `*reverseRelation*` are _relation verbs_ in _camel case_ to define (create/link or delete/unlink) relation. +
+    E.g. `User *hasRole* Role` and `Role *ofUser* User`. +
+    Actual DSL code will be: +
+    * `link { (User withId "foo") *hasRole* (Role withId "admin") }` +
+    * `link { (Role withId "admin") *ofUser* (User withId "foo")}`
+<9> `*forwardQuery*` and `*reverseQuery*` are _query verbs_, which are used in the query based on relations. +
+    E.g. `get( User *withRole* Role)` and `get( Role *ofUser* User )` +
+    Actual DSL code will be: +
+    * `get( User *withRole* (Role withId "admin"))` +
+    * `get( Role *ofUser* (User withId "foo"))`.
 
-1. You create `Entity` and `Relation` Kotlin classes.
-2. Then use these classes to define schema using using `EntityType` and `RelationType`.
+[NOTE]
+====
+* `withId` is reserved and cannot be used as "query" verbs.
+* "relation" and "query" verbs can be same. +
+  So, `ofUser` is both - `reverseRelation` and `reverseQuery` in the example above.
+====
 
-So, the cypher queries will use string literals from `EntityType` and `RelationType`.
-Sample code is in link:[examples/cypher-client].
+[TIP]
+====
+* For _relation verbs_, try using verbs which make sense as a _declaration_ or _statement_.
+* For _query verbs_,, try using verbs which make sense as a _query_.
+* And keep that _query_ and _statement_ as a documentation comment alongside.
+====
 
-=== Layer 2: Entity and Relation Stores
+[NOTE]
+====
+This quick start guide is only for layer 3 API. +
+For the details of API for layer 2 and 1, check documentation under `docs`.
+====
 
-NOTE: First two setups are from _Layer 1: Cypher_.
-
-1. You create `Entity` and `Relation` Kotlin classes.
-2. Then use these classes to define schema using using `EntityType` and `RelationType`.
-3. Then use these type classes to get their corresponding `EntityStore` and `RelationStore`.
-
-You then work on `EntityStore` and `RelationStore` to perform CRUD operations.
-Sample code is in link:[examples/store-client].
-
-=== Layer 3: DSL
-
-NOTE: First three setups are from _Layer 2: Entity and Relation Stores_.
-
-1. You create `Entity` and `Relation` Kotlin classes.
-2. Then use these classes to define schema using using `EntityType` and `RelationType`.
-3. Then use these type classes to get their corresponding `EntityStore` and `RelationStore`.
-4. Create DSL using Kotlin's language features such as `Kotlin DSL`, `extension function`, `infix` etc.
-
-You then work on DSL to perform CRUD operations.
-Sample code is in link:[examples/dsl-client].
-
+== Limitations
+* Due to the known issue in Kotlin _kapt_, `@Repeatable` annotations are not detected. So if an entity class needs to be
+  annotated with multiple `@Relation` annotations, then use `@Relations` annotation with an array of `Relation`.
+* `get()` operation returns an array even when relation is of type unique.
 
 == Source
 

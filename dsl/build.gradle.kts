@@ -4,9 +4,6 @@ plugins {
 }
 
 dependencies {
-  api(project(":client"))
-  api(project(":common"))
-  api(project(":error"))
-  api(project(":model"))
-  api(project(":schema"))
+  api(project(":dsl-model"))
+  api(project(":schema")) // TODO change from api to implementation
 }

@@ -17,27 +17,27 @@ import dev.vihang.neo4jstore.error.NotFoundError
 import dev.vihang.neo4jstore.error.NotUpdatedError
 import dev.vihang.neo4jstore.error.StoreError
 import dev.vihang.neo4jstore.model.HasId
-import dev.vihang.neo4jstore.model.Relation
 import dev.vihang.neo4jstore.schema.ObjectHandler.getProperties
 import dev.vihang.neo4jstore.schema.ObjectHandler.getStringProperties
-import org.neo4j.driver.Transaction
+import dev.vihang.neo4jstore.schema.model.Relation
 import kotlin.reflect.KClass
 
-
 data class EntityType<ENTITY : HasId>(
-        private val dataClass: Class<ENTITY>,
-        val name: String = dataClass.simpleName) {
+        private val dataClass: KClass<ENTITY>,
+        val name: String = dataClass.java.simpleName) {
 
-    var entityStore: EntityStore<ENTITY> = EntityStore(this)
+    lateinit var entityStore: EntityStore<ENTITY>
 
-    fun createEntity(map: Map<String, Any>): ENTITY = ObjectHandler.getObject(map, dataClass)
+    fun createEntity(map: Map<String, Any>): ENTITY = ObjectHandler.getObject(map, dataClass.java)
 }
 
-data class RelationType<FROM : HasId, RELATION, TO : HasId>(
-        private val relation: Relation,
-        val from: EntityType<FROM>,
-        val to: EntityType<TO>,
-        private val dataClass: Class<RELATION>) {
+data class RelationType<FROM : HasId, RELATION : Any, TO : HasId>(
+        val relation: Relation<FROM, TO>,
+        private val dataClass: KClass<RELATION>) {
+
+    val from: EntityType<FROM> = EntityType(relation.from)
+
+    val to: EntityType<TO> = EntityType(relation.to)
 
     val relationStore: BaseRelationStore = if (relation.isUnique) {
         UniqueRelationStore(this)
@@ -48,11 +48,13 @@ data class RelationType<FROM : HasId, RELATION, TO : HasId>(
     val name: String = relation.name
 
     fun createRelation(map: Map<String, Any>): RELATION {
-        return ObjectHandler.getObject(map, dataClass)
+        return ObjectHandler.getObject(map, dataClass.java)
     }
 }
 
-class EntityStore<E : HasId>(private val entityType: EntityType<E>) {
+class EntityStore<E : HasId>(
+        entityClass: KClass<E>,
+        val entityType: EntityType<E> = EntityType(dataClass = entityClass)) {
 
     init {
         entityType.entityStore = this
@@ -186,7 +188,7 @@ sealed class BaseRelationStore {
 }
 
 // TODO vihang: check if relation already exists, with allow duplicate boolean flag param
-class RelationStore<FROM : HasId, RELATION, TO : HasId>(private val relationType: RelationType<FROM, RELATION, TO>) : BaseRelationStore() {
+class RelationStore<FROM : HasId, RELATION : Any, TO : HasId>(private val relationType: RelationType<FROM, RELATION, TO>) : BaseRelationStore() {
 
     fun create(from: FROM, relation: RELATION, to: TO, writeTransaction: WriteTransaction): Either<StoreError, Unit> {
 
@@ -328,7 +330,7 @@ class RelationStore<FROM : HasId, RELATION, TO : HasId>(private val relationType
     }
 }
 
-class UniqueRelationStore<FROM : HasId, RELATION, TO : HasId>(private val relationType: RelationType<FROM, RELATION, TO>) : BaseRelationStore() {
+class UniqueRelationStore<FROM : HasId, RELATION : Any, TO : HasId>(private val relationType: RelationType<FROM, RELATION, TO>) : BaseRelationStore() {
 
     // If relation does not exists, then it creates new relation.
     fun createIfAbsent(fromId: String, toId: String, writeTransaction: WriteTransaction): Either<StoreError, Unit> {
@@ -467,7 +469,7 @@ class UniqueRelationStore<FROM : HasId, RELATION, TO : HasId>(private val relati
                 ifTrue = { relationType.createRelation(result.single()["r"].asMap()) },
                 ifFalse = { NotFoundError(relationType.name, "$fromId -> $toId") })
                 .flatMap {
-                    relation -> relation?.right() ?: NotFoundError(relationType.name, "$fromId -> $toId").left()
+                    relation -> relation.right()
                 }
     }
 
@@ -549,6 +551,3 @@ object ObjectHandler {
         return outputMap
     }
 }
-
-// Need a dummy Void class with no-arg constructor to represent Relations with no properties.
-class None

@@ -5,31 +5,18 @@ import dev.vihang.neo4jstore.client.ReadTransaction
 import dev.vihang.neo4jstore.client.WriteTransaction
 import dev.vihang.neo4jstore.error.StoreError
 import dev.vihang.neo4jstore.model.HasId
+import dev.vihang.neo4jstore.dsl.model.EntityContext
+import dev.vihang.neo4jstore.dsl.model.RelatedFromClause
+import dev.vihang.neo4jstore.dsl.model.RelatedToClause
+import dev.vihang.neo4jstore.dsl.model.RelationExpression
 import dev.vihang.neo4jstore.schema.EntityRegistry
 import dev.vihang.neo4jstore.schema.EntityStore
 import dev.vihang.neo4jstore.schema.RelationStore
 import dev.vihang.neo4jstore.schema.RelationType
 import dev.vihang.neo4jstore.schema.UniqueRelationStore
-import kotlin.reflect.KClass
 import kotlin.reflect.KProperty1
 
-open class EntityContext<E : HasId>(val entityClass: KClass<E>, open val id: String)
-
-data class RelatedFromClause<FROM : HasId, TO : HasId>(
-        val relationType: RelationType<FROM, *, TO>,
-        val fromId: String)
-
-data class RelatedToClause<FROM : HasId, TO : HasId>(
-        val relationType: RelationType<FROM, *, TO>,
-        val toId: String)
-
-data class RelationExpression<FROM : HasId, RELATION, TO : HasId>(
-        val relationType: RelationType<FROM, RELATION, TO>,
-        val fromId: String,
-        val toId: String,
-        val relation: RELATION? = null)
-
-data class PartialRelationExpression<FROM : HasId, RELATION, TO : HasId>(
+data class PartialRelationExpression<FROM : HasId, RELATION : Any, TO : HasId>(
         val relationType: RelationType<FROM, RELATION, TO>,
         val fromId: String,
         val toId: String,
@@ -121,7 +108,7 @@ fun <E : HasId> WriteTransaction.delete(entityContext: EntityContext<E>): Either
     return entityStore.delete(id = entityContext.id, writeTransaction = this)
 }
 
-fun <FROM : HasId, RELATION, TO : HasId> WriteTransaction.link(expression: () -> RelationExpression<FROM, RELATION, TO>): Either<StoreError, Unit> {
+fun <FROM : HasId, RELATION : Any, TO : HasId> WriteTransaction.link(expression: () -> RelationExpression<FROM, RELATION, TO>): Either<StoreError, Unit> {
     val relationExpression = expression()
     val relationStore = relationExpression.relationType.relationStore
     val relation = relationExpression.relation
@@ -161,7 +148,7 @@ fun <FROM : HasId, RELATION, TO : HasId> WriteTransaction.link(expression: () ->
     }
 }
 
-fun <FROM : HasId, RELATION, TO : HasId> WriteTransaction.unlink(expression: () -> RelationExpression<FROM, RELATION, TO>): Either<StoreError, Unit> {
+fun <FROM : HasId, RELATION : Any, TO : HasId> WriteTransaction.unlink(expression: () -> RelationExpression<FROM, RELATION, TO>): Either<StoreError, Unit> {
     val relationExpression = expression()
     val relationStore = relationExpression
             .relationType
@@ -173,7 +160,7 @@ fun <FROM : HasId, RELATION, TO : HasId> WriteTransaction.unlink(expression: () 
     )
 }
 
-fun <FROM : HasId, RELATION, TO : HasId> WriteTransaction.unlink(partialRelationExpression: PartialRelationExpression<FROM, RELATION, TO>): Either<StoreError, Unit> {
+fun <FROM : HasId, RELATION : Any, TO : HasId> WriteTransaction.unlink(partialRelationExpression: PartialRelationExpression<FROM, RELATION, TO>): Either<StoreError, Unit> {
     val relationStore = partialRelationExpression
             .relationType
             .relationStore

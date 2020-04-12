@@ -6,7 +6,7 @@ plugins {
   java
   id("com.github.ben-manes.versions") version Version.versionsPlugin
   jacoco
-  kotlin("jvm") version Version.kotlin apply false
+  kotlin("jvm") version Version.kotlin
   idea
 }
 
@@ -22,17 +22,19 @@ allprojects {
   }
 }
 
-subprojects {
-  tasks.withType<KotlinCompile> {
-    kotlinOptions {
-      jvmTarget = JavaVersion.VERSION_13.majorVersion
-    }
+tasks.withType<KotlinCompile>().configureEach {
+  kotlinOptions {
+    jvmTarget = JavaVersion.VERSION_13.majorVersion
   }
 }
 
 java {
-  sourceCompatibility = JavaVersion.VERSION_14
-  targetCompatibility = JavaVersion.VERSION_14
+  sourceCompatibility = JavaVersion.VERSION_13
+  targetCompatibility = JavaVersion.VERSION_13
+}
+
+idea {
+  targetVersion = JavaVersion.VERSION_13.majorVersion
 }
 
 fun isNonStable(version: String): Boolean {

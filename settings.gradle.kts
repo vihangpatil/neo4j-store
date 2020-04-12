@@ -1,15 +1,29 @@
 rootProject.name = "neo4j-store"
 
 include(
-  ":client",
-  ":common",
-  ":dsl",
-  ":error",
-  ":model",
-  ":schema",
-  ":transaction",
-  ":examples:cypher-client",
-  ":examples:dsl-client",
-  ":examples:store-client",
-  ":examples:model-client"
+
+  // common utils
+  "common",
+
+  // layer 1
+  "client",
+  "error",
+  "transaction",
+  "model",
+
+  // layer 2
+  "schema",
+  "schema-model",
+
+  // layer 3
+  "dsl",
+  "dsl-annotation-processor",
+  "dsl-model",
+  "dsl-model-annotation",
+
+  // clients using layer 1, 2 and 3.
+  "examples:cypher-client", // layer 1 client
+  "examples:store-client", // layer 2 client
+  "examples:dsl-client", // layer 3 client
+  "examples:dsl-kapt-client" // layer 3 client
 )
