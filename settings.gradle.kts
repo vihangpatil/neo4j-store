@@ -25,5 +25,8 @@ include(
   "examples:cypher-client", // layer 1 client
   "examples:store-client", // layer 2 client
   "examples:dsl-client", // layer 3 client
-  "examples:dsl-kapt-client" // layer 3 client
+  "examples:dsl-kapt-client", // layer 3 client
+
+  // full application
+  "examples:iam"
 )
