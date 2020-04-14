@@ -1,0 +1,67 @@
+@startuml
+
+[Layer 1 : cypher-client]
+[Layer 2 : schema-client]
+[Layer 3 : dsl-client]
+[Layer 3 : dsl-kapt-client]
+
+package "neo4j-store" {
+
+    package "Layer 3 : DSL" {
+        [dsl]
+        [dsl-model]
+        [dsl-model-annotation]
+        [dsl-annotation-processor]
+
+[dsl-model-annotation] <.. [dsl-annotation-processor] : impl
+[dsl-model] <-- [dsl] : api
+    }
+
+    package "Layer 2 : Entity and Relation Stores" {
+        [schema]
+        [schema-model]
+
+[schema] --> [schema-model] : api
+    }
+
+[dsl-model] --->  [schema-model] : api
+[dsl] ---> [schema] : api
+
+    package "Layer 1 : Raw Cypher queries" {
+        [client]
+        [error]
+        [transaction]
+    }
+
+    package "Util" {
+        [common]
+    }
+
+    package "Model" {
+        [model]
+    }
+
+[client] --> [common] : api
+[transaction] ..> [common] : impl
+
+
+[schema-model] ---> [model] : api
+[schema] ---> [client] : api
+[schema] ----> [error] : api
+
+}
+
+[Layer 1 : cypher-client] -right-> [client] : uses
+
+[Layer 2 : schema-client] -right-> [schema] : uses
+[Layer 2 : schema-client] -right-> [schema-model] : uses
+
+[Layer 3 : dsl-client] --> [dsl] : uses
+[Layer 3 : dsl-client] --> [dsl-model]: uses
+
+[Layer 3 : dsl-kapt-client] ..> [dsl] : uses
+[Layer 3 : dsl-kapt-client] ..> [dsl-model]: uses
+[Layer 3 : dsl-kapt-client] --> [dsl-annotation-processor]: codegen
+[Layer 3 : dsl-kapt-client] --> [dsl-model-annotation]: codegen
+
+@enduml

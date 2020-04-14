@@ -28,6 +28,11 @@ data class EntityType<ENTITY : HasId>(
 
     lateinit var entityStore: EntityStore<ENTITY>
 
+    // FIXME
+    init {
+        EntityStore(dataClass, this)
+    }
+
     fun createEntity(map: Map<String, Any>): ENTITY = ObjectHandler.getObject(map, dataClass.java)
 }
 

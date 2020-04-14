@@ -1,0 +1,37 @@
+@startuml
+
+node neo4j-store {
+    [client]
+    [model]
+    [schema-model]
+    [schema]
+    [dsl-model]
+    [dsl]
+    [dsl-model-annotation]
+    [dsl-annotation-processor]
+}
+
+node exmaples {
+    [cypher-client]
+    [store-client]
+    [dsl-kapt-client]
+    [dsl-client]
+}
+
+[client] <-- [cypher-client] : uses
+
+[model] <.. [schema-model] : uses
+
+
+[schema] <-- [store-client] : uses
+[schema-model] <-- [store-client] : uses
+
+[dsl] <-- [dsl-client] : uses
+[dsl-model] <-- [dsl-client] : uses
+
+[dsl-model-annotation] <-- [dsl-kapt-client] : uses
+[dsl-annotation-processor] <.. [dsl-kapt-client] : uses
+[dsl] <.. [dsl-kapt-client] : uses
+[dsl-model] <.. [dsl-kapt-client] : uses
+
+@enduml
