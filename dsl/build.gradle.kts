@@ -5,5 +5,5 @@ plugins {
 
 dependencies {
   api(project(":dsl-model"))
-  api(project(":schema")) // TODO change from api to implementation
+  api(project(":schema"))
 }

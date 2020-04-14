@@ -1,11 +1,15 @@
 package dev.vihang.neo4jstore.schema.model
 
-import dev.vihang.neo4jstore.model.HasId
 import kotlin.reflect.KClass
 
-class Relation<FROM: HasId, TO : HasId>(
+interface HasId {
+    val id: String
+}
+
+class Relation<FROM: HasId, RELATION: Any, TO : HasId>(
         val name: String,
         val from: KClass<FROM>,
+        val relation: KClass<RELATION>,
         val to: KClass<TO>,
         val isUnique: Boolean = true)
 

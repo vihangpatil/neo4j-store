@@ -9,7 +9,6 @@ include(
   "client",
   "error",
   "transaction",
-  "model",
 
   // layer 2
   "schema",

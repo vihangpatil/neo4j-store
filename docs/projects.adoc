@@ -26,12 +26,6 @@ General utilities used internally.
 
 '''
 
-=== model
-
-`interface HasID` which is to be inherited by Entity classes, which are Kotlin Data classes.
-
-'''
-
 === Layer 1 : Raw Cypher queries
 
 ==== client
@@ -60,6 +54,7 @@ Any _Kotlin data class_ can be used to define `EntityType`.
 
 ==== schema-model
 
+`interface HasID` which is to be inherited by Entity classes, which are Kotlin Data classes.
 Has classes needed to define `*Relation*`, which is then used in `RelationType`.
 
 '''

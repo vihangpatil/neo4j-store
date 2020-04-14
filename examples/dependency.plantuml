@@ -2,7 +2,6 @@
 
 node neo4j-store {
     [client]
-    [model]
     [schema-model]
     [schema]
     [dsl-model]
@@ -19,9 +18,6 @@ node exmaples {
 }
 
 [client] <-- [cypher-client] : uses
-
-[model] <.. [schema-model] : uses
-
 
 [schema] <-- [store-client] : uses
 [schema-model] <-- [store-client] : uses

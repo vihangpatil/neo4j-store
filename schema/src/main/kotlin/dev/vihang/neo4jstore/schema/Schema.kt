@@ -2,7 +2,6 @@ package dev.vihang.neo4jstore.schema
 
 import arrow.core.Either
 import arrow.core.flatMap
-import arrow.core.left
 import arrow.core.right
 import com.fasterxml.jackson.core.type.TypeReference
 import dev.vihang.common.jsonmapper.objectMapper
@@ -16,7 +15,7 @@ import dev.vihang.neo4jstore.error.NotDeletedError
 import dev.vihang.neo4jstore.error.NotFoundError
 import dev.vihang.neo4jstore.error.NotUpdatedError
 import dev.vihang.neo4jstore.error.StoreError
-import dev.vihang.neo4jstore.model.HasId
+import dev.vihang.neo4jstore.schema.model.HasId
 import dev.vihang.neo4jstore.schema.ObjectHandler.getProperties
 import dev.vihang.neo4jstore.schema.ObjectHandler.getStringProperties
 import dev.vihang.neo4jstore.schema.model.Relation
@@ -37,8 +36,7 @@ data class EntityType<ENTITY : HasId>(
 }
 
 data class RelationType<FROM : HasId, RELATION : Any, TO : HasId>(
-        val relation: Relation<FROM, TO>,
-        private val dataClass: KClass<RELATION>) {
+        val relation: Relation<FROM, RELATION, TO>) {
 
     val from: EntityType<FROM> = EntityType(relation.from)
 
@@ -53,7 +51,7 @@ data class RelationType<FROM : HasId, RELATION : Any, TO : HasId>(
     val name: String = relation.name
 
     fun createRelation(map: Map<String, Any>): RELATION {
-        return ObjectHandler.getObject(map, dataClass.java)
+        return ObjectHandler.getObject(map, relation.relation.java)
     }
 }
 

@@ -23,10 +23,7 @@ fun main() {
         val userStore = EntityStore(User::class)
         val roleStore = EntityStore(Role::class)
 
-        val hasRoleType = RelationType<User, None, Role>(
-                relation = hasRoleRelation,
-                dataClass = None::class
-        )
+        val hasRoleType = RelationType<User, None, Role>(relation = hasRoleRelation)
 
         val hasRoleStore = UniqueRelationStore(relationType = hasRoleType)
 

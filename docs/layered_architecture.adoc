@@ -19,10 +19,10 @@ Layered architecture where you can choose the level of convenience and control.
            |  schema-model      |          |
            |                    |          |
            +--------------------+----------+
-           |                    |          |
- Layer 1   |     model          |  client  |
-           |                    |          |
-           +--------------------+----------+
+                                |          |
+ Layer 1                        |  client  |
+                                |          |
+                                +----------+
 
 ----
 
@@ -31,19 +31,10 @@ Layered architecture where you can choose the level of convenience and control.
 
 === Layer 1: Cypher
 
-You work directly on `cypher` queries.
-
-NOTE: For type-safety, it is recommended to use `EntityType` and `RelationType` in cypher queries.
-
-1. You create `Entity` and `Relation` Kotlin classes.
-2. Then use these classes to define schema using `EntityType` and `RelationType`.
-
-So, the cypher queries will use string literals from `EntityType` and `RelationType`. +
+You work directly on `cypher` queries. +
 Sample code is in link:[examples/cypher-client].
 
 === Layer 2: Entity and Relation Stores
-
-NOTE: First two setups are from _Layer 1: Cypher_.
 
 1. You create `Entity` and `Relation` Kotlin classes.
 2. Then use these classes to define schema using `EntityType` and `RelationType`.
@@ -54,7 +45,7 @@ Sample code is in link:[examples/store-client].
 
 === Layer 3: DSL
 
-NOTE: First three setups are from _Layer 2: Entity and Relation Stores_.
+NOTE: First three setups are from <<Layer 2: Entity and Relation Stores>>.
 
 1. You create `Entity` and `Relation` Kotlin classes.
 2. Then use these classes to define schema using `EntityType` and `RelationType`.

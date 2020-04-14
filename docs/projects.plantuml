@@ -37,15 +37,10 @@ package "neo4j-store" {
         [common]
     }
 
-    package "Model" {
-        [model]
-    }
-
 [client] --> [common] : api
 [transaction] ..> [common] : impl
 
 
-[schema-model] ---> [model] : api
 [schema] ---> [client] : api
 [schema] ----> [error] : api
 

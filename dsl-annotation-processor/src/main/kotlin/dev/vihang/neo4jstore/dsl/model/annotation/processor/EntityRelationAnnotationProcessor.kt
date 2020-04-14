@@ -139,18 +139,6 @@ class EntityRelationAnnotationProcessor : AbstractProcessor() {
 
                         fileContent.append("\n\n")
 
-
-                        // FIXME
-//                        fileSpec.addType(
-//                                TypeSpec.classBuilder("${classInfo.className}Context")
-//                                        .primaryConstructor(FunSpec.constructorBuilder()
-//                                                .addParameter(ParameterSpec("id", STRING))
-//                                                .build())
-//                                        .superclass(EntityContext::class)
-//                                        .addSuperclassConstructorParameter("${classInfo.className}::class")
-//                                        .addSuperclassConstructorParameter("id")
-//                                        .build())
-
                         fileContent.append("""
                         infix fun $className.Companion.withId(id: String) = ${className}Context(id)
                         """.trimIndent())
@@ -198,38 +186,36 @@ class EntityRelationAnnotationProcessor : AbstractProcessor() {
                         val toObj = to.decapitalize()
 
                         fileContent.append("""
-                        val ${relationName}Relation: Relation<$from, $to> = Relation(
+                        val ${relationName}Relation: Relation<$from, None, $to> = Relation(
                                 name = "${relationInfo.name}",
                                 from = $from::class,
+                                relation = None::class,
                                 to = $to::class
                         )
                         
                         
-                        val ${relationName}Type = RelationType(
-                                relation = ${relationName}Relation,
-                                dataClass = None::class
-                        )
+                        val ${relationName}Type = RelationType(relation = ${relationName}Relation)
                         
                         
                         infix fun ${from}.Companion.${relationInfo.forwardQuery}($toObj: ${to}Context) : RelatedToClause<$from, $to> = RelatedToClause(
-                                relationType = ${relationName}Type,
+                                relation = ${relationName}Relation,
                                 toId = $toObj.id
                         )
                         
                         
                         infix fun ${to}.Companion.${relationInfo.reverseQuery}($fromObj: ${from}Context) : RelatedFromClause<$from, $to> = RelatedFromClause(
-                                relationType = ${relationName}Type,
+                                relation = ${relationName}Relation,
                                 fromId = $fromObj.id
                         )
                         
                         infix fun ${from}Context.${relationInfo.forwardRelation}(${to.decapitalize()}: ${to}Context) : RelationExpression<$from, None, $to> = RelationExpression(
-                                relationType = ${relationName}Type,
+                                relation = ${relationName}Relation,
                                 fromId = id,
                                 toId = ${to.decapitalize()}.id
                         )
 
                         infix fun ${to}Context.${relationInfo.reverseRelation}(${from.decapitalize()}: ${from}Context) : RelationExpression<$from, None, $to> = RelationExpression(
-                                relationType = ${relationName}Type,
+                                relation = ${relationName}Relation,
                                 fromId = ${from.decapitalize()}.id,
                                 toId = id
                         )

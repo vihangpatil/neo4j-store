@@ -1,6 +1,6 @@
 package dev.vihang.neo4jstore.examples.dslclient
 
-import dev.vihang.neo4jstore.model.HasId
+import dev.vihang.neo4jstore.schema.model.HasId
 
 data class User(
         override val id: String,
