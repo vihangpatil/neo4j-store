@@ -7,13 +7,14 @@ plugins {
   id("com.github.ben-manes.versions") version Version.versionsPlugin
   jacoco
   kotlin("jvm") version Version.kotlin
+  id("com.github.johnrengelman.shadow") version Version.shadowJarPlugin apply false
   idea
 }
 
 allprojects {
   apply(plugin = "jacoco")
 
-  group = "dev.vihang"
+  group = "dev.vihang.neo4j-store"
   version = "1.0.0-SNAPSHOT"
 
   repositories {

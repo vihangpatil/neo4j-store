@@ -11,7 +11,7 @@ object Version {
   const val kotlinPoet = "1.5.0"
   const val neo4jDriver = "4.0.1"
   const val neo4j = "4.0.3"
+  const val shadowJarPlugin = "5.2.0"
   const val slf4j = "1.7.30"
-  const val spek = "2.0.10"
   const val versionsPlugin = "0.28.0"
 }

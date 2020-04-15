@@ -1,5 +1,13 @@
 = Developer guidelines
 
+== Publishing to Maven Local
+
+----
+./gradlew :dsl:publishToMavenLocal
+./gradlew :dsl-model-annotation:publishToMavenLocal
+./gradlew :dsl-annotation-processor:publishToMavenLocal
+----
+
 == Checking for dependency updates
 
 ----
