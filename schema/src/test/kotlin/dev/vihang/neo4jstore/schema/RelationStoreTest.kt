@@ -86,6 +86,42 @@ class RelationStoreTest {
         }
     }
 
+    @Test
+    fun createToIds() {
+
+        writeTransaction {
+            Either.fx<StoreError, Unit> {
+
+                // create entities
+
+                identityStore.create(Identity(id = "foo@bar.com", type = "EMAIL"), this@writeTransaction).bind()
+
+                userStore.create(User(id = "user_1", name = "Test User 1"), this@writeTransaction).bind()
+                userStore.create(User(id = "user_2", name = "Test User 2"), this@writeTransaction).bind()
+                userStore.create(User(id = "user_3", name = "Test User 3"), this@writeTransaction).bind()
+
+                // create relation
+                identifiesStore.create(
+                        fromId = "foo@bar.com",
+                        toIds = listOf("user_1", "user_2", "user_3"),
+                        writeTransaction = this@writeTransaction
+                ).bind()
+
+                read("MATCH (:Identity)-[r:IDENTIFIES]->(:User) RETURN r;") { result ->
+                    val recordList = result.list()
+                    // should have 3 relations
+                    recordList.size `should be equal to` 3
+                }
+
+                Unit
+            }
+        }.mapLeft {
+            fail {
+                it.message
+            }
+        }
+    }
+
     @BeforeEach
     fun clear() {
         writeTransaction {

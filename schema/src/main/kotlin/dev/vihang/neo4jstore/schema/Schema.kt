@@ -246,25 +246,29 @@ class RelationStore<FROM : HasId, RELATION : Any, TO : HasId>(private val relati
         }
     }
 
-    // TODO vihang: use parameters
-    fun create(fromId: String, toIds: Collection<String>, writeTransaction: WriteTransaction): Either<StoreError, Unit> = writeTransaction.write("""
+    fun create(fromId: String, toIds: Collection<String>, writeTransaction: WriteTransaction): Either<StoreError, Unit> {
+
+        val parameters: Map<String, Any> = mapOf("toIds" to toIds)
+
+        return writeTransaction.write("""
                 MATCH (to:${relationType.to.name})
-                WHERE to.id in [${toIds.joinToString(",") { "'$it'" }}]
+                WHERE to.id in ${'$'}toIds
                 WITH to
                 MATCH (from:${relationType.from.name} { id: '$fromId' })
                 CREATE (from)-[:${relationType.name}]->(to);
-                """.trimIndent()) { result ->
-        // TODO vihang: validate if 'from' and 'to' node exists
-        val actualCount = result.consume().counters().relationshipsCreated()
-        Either.cond(
-                test = actualCount == toIds.size,
-                ifTrue = {},
-                ifFalse = {
-                    NotCreatedError(
-                            type = relationType.name,
-                            expectedCount = toIds.size,
-                            actualCount = actualCount)
-                })
+                """.trimIndent(), parameters) { result ->
+            // TODO vihang: validate if 'from' and 'to' node exists
+            val actualCount = result.consume().counters().relationshipsCreated()
+            Either.cond(
+                    test = actualCount == toIds.size,
+                    ifTrue = {},
+                    ifFalse = {
+                        NotCreatedError(
+                                type = relationType.name,
+                                expectedCount = toIds.size,
+                                actualCount = actualCount)
+                    })
+        }
     }
 
     fun create(fromIds: Collection<String>, toId: String, writeTransaction: WriteTransaction): Either<StoreError, Unit> {
