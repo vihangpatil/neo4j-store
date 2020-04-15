@@ -19,6 +19,8 @@ allprojects {
   repositories {
     mavenCentral()
     jcenter()
+    // docker-compose-junit is published on bintray
+    maven { url = uri("https://dl.bintray.com/palantir/releases") }
   }
 }
 

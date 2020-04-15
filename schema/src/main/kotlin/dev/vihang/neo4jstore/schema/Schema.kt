@@ -388,14 +388,14 @@ class UniqueRelationStore<FROM : HasId, RELATION : Any, TO : HasId>(private val 
                     relationType.to.entityStore.exists(toId, writeTransaction)
                 }.flatMap {
 
-                    val properties = getProperties(relation as Any)
                     doNotExist(fromId, toId, writeTransaction).fold(
                             {
-                                // TODO vihang: set props using parameter
-                                val setClause: String = properties.entries.fold("") { acc, entry -> """$acc SET r.`${entry.key}` = '${entry.value}' """ }
+                                val properties = getStringProperties(relation).toMutableMap()
+                                val parameters: Map<String, Any> = mapOf("props" to properties)
+
                                 writeTransaction.write(
                                         """MATCH (fromId:${relationType.from.name} {id: '$fromId'})-[r:${relationType.name}]->(toId:${relationType.to.name} {id: '$toId'})
-                                    $setClause ;""".trimMargin()) { result ->
+                                    SET r = ${'$'}props ;""".trimMargin(), parameters) { result ->
                                     Either.cond(
                                             test = result.consume().counters().containsUpdates(), // TODO vihang: this is not perfect way to check if updates are applied
                                             ifTrue = {},
@@ -403,7 +403,8 @@ class UniqueRelationStore<FROM : HasId, RELATION : Any, TO : HasId>(private val 
                                 }
                             },
                             {
-                                // TODO vihang: set props using parameter
+                                // property maps cannot be used with MERGE
+                                val properties = getProperties(relation as Any)
                                 val strProps: String = properties.entries.joinToString(",") { """`${it.key}`: "${it.value}"""" }
 
                                 writeTransaction.write("""

@@ -44,9 +44,12 @@ import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.extension.RegisterExtension
+import org.junit.jupiter.api.fail
 import kotlin.test.assertEquals
 
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class Tests {
 
     @Test
@@ -136,16 +139,31 @@ class Tests {
 
                 Unit
             }
+        }.mapLeft {
+            fail {
+                it.message
+            }
         }
     }
 
     @BeforeEach
     fun clear() {
         writeTransaction {
-            write("MATCH (n) DELETE n;") {
+            write("MATCH (n) DETACH DELETE n;") {
 
             }
         }
+    }
+
+    @BeforeAll
+    fun start() {
+        ConfigRegistry.config = Config()
+        Neo4jClient.start()
+    }
+
+    @AfterAll
+    fun stop() {
+        Neo4jClient.stop()
     }
 
     companion object {
@@ -161,18 +179,5 @@ class Tests {
                         },
                         Duration.standardSeconds(40L))
                 .build()
-
-        @BeforeAll
-        @JvmStatic
-        fun start() {
-            ConfigRegistry.config = Config()
-            Neo4jClient.start()
-        }
-
-        @AfterAll
-        @JvmStatic
-        fun stop() {
-            Neo4jClient.stop()
-        }
     }
 }

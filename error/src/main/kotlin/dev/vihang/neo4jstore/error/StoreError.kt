@@ -38,3 +38,4 @@ class NotDeletedError(type: String,
                 id = id,
                 message = "$type - $id not deleted.")
 
+class GenericStoreError(type: String, id: String, message: String) : StoreError(type, id, message)

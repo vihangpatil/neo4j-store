@@ -13,4 +13,14 @@ dependencies {
 
   api("io.arrow-kt:arrow-fx:${Version.arrow}")
   api("io.arrow-kt:arrow-syntax:${Version.arrow}")
+
+  testImplementation("com.palantir.docker.compose:docker-compose-junit-jupiter:${Version.dockerComposeJunit}")
+
+  testImplementation(kotlin("test"))
+  testImplementation("org.junit.jupiter:junit-jupiter:${Version.junit5}")
+  testImplementation("org.amshove.kluent:kluent:${Version.kluent}")
+}
+
+tasks.test {
+  useJUnitPlatform()
 }
