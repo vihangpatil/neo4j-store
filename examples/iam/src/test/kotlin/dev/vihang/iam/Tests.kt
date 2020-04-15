@@ -1,4 +1,4 @@
-package dev.viahng.iam
+package dev.vihang.iam
 
 import arrow.core.Either
 import arrow.core.extensions.fx

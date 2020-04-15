@@ -9,6 +9,8 @@ repositories {
   maven { url = uri("https://dl.bintray.com/palantir/releases") }
 }
 
+group = "dev.vihang.iam"
+
 dependencies {
   implementation(project(":dsl"))
   compileOnly(project(":dsl-model-annotation"))
