@@ -12,6 +12,7 @@ import dev.vihang.neo4jstore.client.write
 import dev.vihang.neo4jstore.client.writeTransaction
 import dev.vihang.neo4jstore.error.StoreError
 import dev.vihang.neo4jstore.schema.model.HasId
+import dev.vihang.neo4jstore.schema.model.None
 import dev.vihang.neo4jstore.schema.model.Relation
 import org.amshove.kluent.`should be equal to`
 import org.joda.time.Duration
@@ -24,7 +25,7 @@ import org.junit.jupiter.api.extension.RegisterExtension
 import org.junit.jupiter.api.fail
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class UniqueRelationStoreTest {
+class RelationStoreTest {
 
     // Entity classes
 
@@ -36,100 +37,44 @@ class UniqueRelationStoreTest {
         companion object
     }
 
-    // Relation class
-
-    data class Identifies(val provider: String)
-
     // schema
     private val identifiesRelation = Relation(
             name = "IDENTIFIES",
             from = Identity::class,
-            relation = Identifies::class,
+            relation = None::class,
             to = User::class
     )
 
     private val identityStore = Identity::class.entityStore
     private val userStore = User::class.entityStore
     private val identifiesType = RelationType(identifiesRelation)
-    private val identifiesStore = UniqueRelationStore(identifiesType)
+    private val identifiesStore = RelationStore(identifiesType)
 
     @Test
-    fun createIfAbsent() {
+    fun createFromIds() {
 
         writeTransaction {
             Either.fx<StoreError, Unit> {
 
                 // create entities
 
-                identityStore.create(Identity(id = "foo@bar.com", type = "EMAIL"), this@writeTransaction).bind()
+                identityStore.create(Identity(id = "one@foo.com", type = "EMAIL"), this@writeTransaction).bind()
+                identityStore.create(Identity(id = "two@foo.com", type = "EMAIL"), this@writeTransaction).bind()
+                identityStore.create(Identity(id = "three@foo.com", type = "EMAIL"), this@writeTransaction).bind()
+
                 userStore.create(User(id = "some_user", name = "Test User"), this@writeTransaction).bind()
 
                 // create relation
-                identifiesStore.createIfAbsent(
-                        fromId = "foo@bar.com",
+                identifiesStore.create(
+                        fromIds = listOf("one@foo.com", "two@foo.com", "three@foo.com"),
                         toId = "some_user",
-                        relation = Identifies(provider = "bar.com"),
-                        writeTransaction = this@writeTransaction
-                ).bind()
-
-                // attempt to create duplicate relation
-                identifiesStore.createIfAbsent(
-                        fromId = "foo@bar.com",
-                        toId = "some_user",
-                        relation = Identifies(provider = "test.com"), // changed property
-                        writeTransaction = this@writeTransaction
-                ).bind()
-
-                write("MATCH (:Identity)-[r:IDENTIFIES]->(:User) RETURN r;") { result ->
-                    val recordList = result.list()
-                    // should have only one unique relation
-                    recordList.size `should be equal to` 1
-                    // that relation should not be updated and should be one which was created first
-                    identifiesType.createRelation(recordList.single()["r"].asMap()) `should be equal to` Identifies(provider = "bar.com")
-                }
-
-                Unit
-            }
-        }.mapLeft {
-            fail {
-                it.message
-            }
-        }
-    }
-
-    @Test
-    fun createOrUpdate() {
-
-        writeTransaction {
-            Either.fx<StoreError, Unit> {
-
-                // create entities
-
-                identityStore.create(Identity(id = "foo@bar.com", type = "EMAIL"), this@writeTransaction).bind()
-                userStore.create(User(id = "some_user", name = "Test User"), this@writeTransaction).bind()
-
-                // create relation
-                identifiesStore.createOrUpdate(
-                        fromId = "foo@bar.com",
-                        toId = "some_user",
-                        relation = Identifies(provider = "bar.com"),
-                        writeTransaction = this@writeTransaction
-                ).bind()
-
-                // attempt to create duplicate relation
-                identifiesStore.createOrUpdate(
-                        fromId = "foo@bar.com",
-                        toId = "some_user",
-                        relation = Identifies(provider = "test.com"),
                         writeTransaction = this@writeTransaction
                 ).bind()
 
                 read("MATCH (:Identity)-[r:IDENTIFIES]->(:User) RETURN r;") { result ->
                     val recordList = result.list()
-                    // should have only one unique relation
-                    recordList.size `should be equal to` 1
-                    // that relation should be updated one
-                    identifiesType.createRelation(recordList.single()["r"].asMap()) `should be equal to` Identifies(provider = "test.com")
+                    // should have 3 relations
+                    recordList.size `should be equal to` 3
                 }
 
                 Unit

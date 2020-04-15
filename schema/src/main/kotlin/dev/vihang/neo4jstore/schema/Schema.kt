@@ -267,26 +267,30 @@ class RelationStore<FROM : HasId, RELATION : Any, TO : HasId>(private val relati
                 })
     }
 
-    // TODO vihang: use parameters
-    fun create(fromIds: Collection<String>, toId: String, writeTransaction: WriteTransaction): Either<StoreError, Unit> = writeTransaction.write("""
+    fun create(fromIds: Collection<String>, toId: String, writeTransaction: WriteTransaction): Either<StoreError, Unit> {
+
+        val parameters: Map<String, Any> = mapOf("fromIds" to fromIds)
+
+        return writeTransaction.write("""
                 MATCH (from:${relationType.from.name})
-                WHERE from.id in [${fromIds.joinToString(",") { "'$it'" }}]
+                WHERE from.id in ${'$'}fromIds
                 WITH from
                 MATCH (to:${relationType.to.name} { id: '$toId' })
                 CREATE (from)-[:${relationType.name}]->(to);
-                """.trimIndent()) { result ->
+                """.trimIndent(), parameters) { result ->
 
-        // TODO vihang: validate if 'from' and 'to' node exists
-        val actualCount = result.consume().counters().relationshipsCreated()
-        Either.cond(
-                test = actualCount == fromIds.size,
-                ifTrue = {},
-                ifFalse = {
-                    NotCreatedError(
-                            type = relationType.name,
-                            expectedCount = fromIds.size,
-                            actualCount = actualCount)
-                })
+            // TODO vihang: validate if 'from' and 'to' node exists
+            val actualCount = result.consume().counters().relationshipsCreated()
+            Either.cond(
+                    test = actualCount == fromIds.size,
+                    ifTrue = {},
+                    ifFalse = {
+                        NotCreatedError(
+                                type = relationType.name,
+                                expectedCount = fromIds.size,
+                                actualCount = actualCount)
+                    })
+        }
     }
 
     fun get(
@@ -363,8 +367,8 @@ class UniqueRelationStore<FROM : HasId, RELATION : Any, TO : HasId>(private val 
                     doNotExist(fromId, toId, writeTransaction).fold(
                             { Unit.right() },
                             {
+                                // property maps cannot be used with MERGE
                                 val properties = getProperties(relation as Any)
-                                // TODO vihang: set props using parameter
                                 val strProps: String = properties.entries.joinToString(",") { """`${it.key}`: "${it.value}"""" }
 
                                 writeTransaction.write("""
@@ -393,8 +397,8 @@ class UniqueRelationStore<FROM : HasId, RELATION : Any, TO : HasId>(private val 
                                 val properties = getStringProperties(relation).toMutableMap()
                                 val parameters: Map<String, Any> = mapOf("props" to properties)
 
-                                writeTransaction.write(
-                                        """MATCH (fromId:${relationType.from.name} {id: '$fromId'})-[r:${relationType.name}]->(toId:${relationType.to.name} {id: '$toId'})
+                                writeTransaction.write("""
+                                    MATCH (fromId:${relationType.from.name} {id: '$fromId'})-[r:${relationType.name}]->(toId:${relationType.to.name} {id: '$toId'})
                                     SET r = ${'$'}props ;""".trimMargin(), parameters) { result ->
                                     Either.cond(
                                             test = result.consume().counters().containsUpdates(), // TODO vihang: this is not perfect way to check if updates are applied
@@ -441,8 +445,9 @@ class UniqueRelationStore<FROM : HasId, RELATION : Any, TO : HasId>(private val 
     fun create(fromId: String, relation: RELATION, toId: String, writeTransaction: WriteTransaction): Either<StoreError, Unit> {
 
         return doNotExist(fromId, toId, writeTransaction).flatMap {
+
+            // property maps cannot be used with MERGE
             val properties = getProperties(relation as Any)
-            // TODO vihang: set props using parameter
             val strProps: String = properties.entries.joinToString(",") { """`${it.key}`: "${it.value}"""" }
 
             writeTransaction.write("""
