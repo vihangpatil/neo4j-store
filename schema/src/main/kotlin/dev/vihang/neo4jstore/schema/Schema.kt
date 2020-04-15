@@ -22,15 +22,10 @@ import dev.vihang.neo4jstore.schema.model.Relation
 import kotlin.reflect.KClass
 
 data class EntityType<ENTITY : HasId>(
-        private val dataClass: KClass<ENTITY>,
+        val dataClass: KClass<ENTITY>,
         val name: String = dataClass.java.simpleName) {
 
     lateinit var entityStore: EntityStore<ENTITY>
-
-    // FIXME
-    init {
-        EntityStore(dataClass, this)
-    }
 
     fun createEntity(map: Map<String, Any>): ENTITY = ObjectHandler.getObject(map, dataClass.java)
 }
@@ -38,9 +33,9 @@ data class EntityType<ENTITY : HasId>(
 data class RelationType<FROM : HasId, RELATION : Any, TO : HasId>(
         val relation: Relation<FROM, RELATION, TO>) {
 
-    val from: EntityType<FROM> = EntityType(relation.from)
+    val from: EntityType<FROM> = relation.from.entityType
 
-    val to: EntityType<TO> = EntityType(relation.to)
+    val to: EntityType<TO> = relation.to.entityType
 
     val relationStore: BaseRelationStore = if (relation.isUnique) {
         UniqueRelationStore(this)
@@ -55,9 +50,7 @@ data class RelationType<FROM : HasId, RELATION : Any, TO : HasId>(
     }
 }
 
-class EntityStore<E : HasId>(
-        entityClass: KClass<E>,
-        val entityType: EntityType<E> = EntityType(dataClass = entityClass)) {
+class EntityStore<E : HasId>(val entityType: EntityType<E>) {
 
     init {
         entityType.entityStore = this

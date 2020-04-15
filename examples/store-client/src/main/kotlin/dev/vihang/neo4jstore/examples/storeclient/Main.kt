@@ -11,6 +11,7 @@ import dev.vihang.neo4jstore.schema.EntityStore
 import dev.vihang.neo4jstore.schema.model.None
 import dev.vihang.neo4jstore.schema.RelationType
 import dev.vihang.neo4jstore.schema.UniqueRelationStore
+import dev.vihang.neo4jstore.schema.entityStore
 
 fun main() {
 
@@ -20,10 +21,10 @@ fun main() {
 
     try {
         // using [Entity], create [EntityStore]
-        val userStore = EntityStore(User::class)
-        val roleStore = EntityStore(Role::class)
+        val userStore = User::class.entityStore
+        val roleStore = Role::class.entityStore
 
-        val hasRoleType = RelationType<User, None, Role>(relation = hasRoleRelation)
+        val hasRoleType = RelationType(relation = hasRoleRelation)
 
         val hasRoleStore = UniqueRelationStore(relationType = hasRoleType)
 

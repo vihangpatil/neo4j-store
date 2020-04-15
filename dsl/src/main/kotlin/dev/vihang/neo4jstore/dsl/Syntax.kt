@@ -9,7 +9,6 @@ import dev.vihang.neo4jstore.dsl.model.EntityContext
 import dev.vihang.neo4jstore.dsl.model.RelatedFromClause
 import dev.vihang.neo4jstore.dsl.model.RelatedToClause
 import dev.vihang.neo4jstore.dsl.model.RelationExpression
-import dev.vihang.neo4jstore.schema.EntityRegistry
 import dev.vihang.neo4jstore.schema.EntityStore
 import dev.vihang.neo4jstore.schema.RelationStore
 import dev.vihang.neo4jstore.schema.UniqueRelationStore
@@ -31,7 +30,7 @@ data class PartialRelationExpression<FROM : HasId, RELATION : Any, TO : HasId>(
 }
 
 fun <E : HasId> ReadTransaction.get(entityContext: EntityContext<E>): Either<StoreError, E> {
-    val entityStore: EntityStore<E> = EntityRegistry.getEntityStore(entityContext.entityClass)
+    val entityStore: EntityStore<E> = entityContext.entityClass.entityStore
     return entityStore.get(id = entityContext.id, readTransaction = this)
 }
 
@@ -77,35 +76,35 @@ fun <FROM : HasId, RELATION : Any, TO : HasId> ReadTransaction.get(partialRelati
 
 fun <E : HasId> WriteTransaction.create(obj: () -> E): Either<StoreError, Unit> {
     val entity: E = obj()
-    val entityStore: EntityStore<E> = EntityRegistry.getEntityStore(entity::class) as EntityStore<E>
+    val entityStore: EntityStore<E> = entity::class.entityStore as EntityStore<E>
     return entityStore.create(entity = entity, writeTransaction = this)
 }
 
 fun <E : HasId> WriteTransaction.update(obj: () -> E): Either<StoreError, Unit> {
     val entity: E = obj()
-    val entityStore: EntityStore<E> = EntityRegistry.getEntityStore(entity::class) as EntityStore<E>
+    val entityStore: EntityStore<E> = entity::class.entityStore as EntityStore<E>
     return entityStore.update(entity = entity, writeTransaction = this)
 }
 
 fun <E : HasId> WriteTransaction.update(entityContext: EntityContext<E>, set: Pair<KProperty1<E, Any?>, String?>): Either<StoreError, Unit> {
-    val entityStore: EntityStore<E> = EntityRegistry.getEntityStore(entityContext.entityClass)
+    val entityStore: EntityStore<E> = entityContext.entityClass.entityStore
     return entityStore.update(id = entityContext.id, properties = mapOf(set.first.name to set.second), writeTransaction = this)
 }
 
 fun <E : HasId> WriteTransaction.update(entityContext: EntityContext<E>, vararg set: Pair<KProperty1<E, Any?>, String?>): Either<StoreError, Unit> {
-    val entityStore: EntityStore<E> = EntityRegistry.getEntityStore(entityContext.entityClass)
+    val entityStore: EntityStore<E> = entityContext.entityClass.entityStore
     val properties = set.map { it.first.name to it.second }.toMap()
     return entityStore.update(id = entityContext.id, properties = properties, writeTransaction = this)
 }
 
 fun <E : HasId> WriteTransaction.update(entityContext: EntityContext<E>, set: Map<KProperty1<E, Any?>, String?>): Either<StoreError, Unit> {
-    val entityStore: EntityStore<E> = EntityRegistry.getEntityStore(entityContext.entityClass)
+    val entityStore: EntityStore<E> = entityContext.entityClass.entityStore
     val properties = set.mapKeys { it.key.name }
     return entityStore.update(id = entityContext.id, properties = properties, writeTransaction = this)
 }
 
 fun <E : HasId> WriteTransaction.delete(entityContext: EntityContext<E>): Either<StoreError, Unit> {
-    val entityStore: EntityStore<E> = EntityRegistry.getEntityStore(entityContext.entityClass)
+    val entityStore: EntityStore<E> = entityContext.entityClass.entityStore
     return entityStore.delete(id = entityContext.id, writeTransaction = this)
 }
 
