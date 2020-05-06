@@ -23,11 +23,11 @@ fun main() {
         }
 
         writeTransaction {
-            write(query = "MATCH (n) DELETE n;") {
-                result ->
+            write(query = "MATCH (n) DELETE n;") { result ->
                 println("Nodes deleted: ${result.consume().counters().nodesDeleted()}")
             }
         }
+
     } finally {
         Neo4jClient.stop()
     }

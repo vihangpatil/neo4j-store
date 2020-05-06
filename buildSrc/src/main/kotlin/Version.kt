@@ -8,6 +8,7 @@ object Version {
   const val junit5 = "5.6.2"
   const val kluent = "1.61"
   const val kotlin = "1.3.72"
+  const val kotlinCoroutine = "1.3.5"
   const val kotlinPoet = "1.5.0"
   const val neo4jDriver = "4.0.1"
   const val neo4j = "4.0.3"

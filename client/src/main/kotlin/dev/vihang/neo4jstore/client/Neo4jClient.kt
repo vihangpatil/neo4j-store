@@ -1,6 +1,7 @@
 package dev.vihang.neo4jstore.client
 
 import dev.vihang.common.logging.getLogger
+import kotlinx.coroutines.future.await
 import org.neo4j.driver.AccessMode.READ
 import org.neo4j.driver.AccessMode.WRITE
 import org.neo4j.driver.AuthTokens
@@ -10,7 +11,12 @@ import org.neo4j.driver.Result
 import org.neo4j.driver.Session
 import org.neo4j.driver.SessionConfig
 import org.neo4j.driver.Transaction
+import org.neo4j.driver.async.AsyncSession
+import org.neo4j.driver.async.AsyncTransaction
+import org.neo4j.driver.async.ResultCursor
 import java.net.URI
+import java.util.concurrent.CompletableFuture
+import java.util.concurrent.CompletionStage
 import java.util.concurrent.TimeUnit.SECONDS
 
 /**
@@ -48,6 +54,12 @@ object Neo4jClient {
     }
 }
 
+//
+// Session factories
+//
+
+// Sync Session factories
+
 fun createReadSession(): Session {
     val sessionConfig = SessionConfig.builder()
             .withDefaultAccessMode(READ)
@@ -64,6 +76,30 @@ fun createWriteSession(): Session {
     return Neo4jClient.driver.session(sessionConfig)
 }
 
+// Async Session factories
+
+fun createReadAsyncSession(): AsyncSession {
+    val sessionConfig = SessionConfig.builder()
+            .withDefaultAccessMode(READ)
+            .build()
+
+    return Neo4jClient.driver.asyncSession(sessionConfig)
+}
+
+fun createWriteAsyncSession(): AsyncSession {
+    val sessionConfig = SessionConfig.builder()
+            .withDefaultAccessMode(WRITE)
+            .build()
+
+    return Neo4jClient.driver.asyncSession(sessionConfig)
+}
+
+//
+// Transactions
+//
+
+// Sync Transactions
+
 open class ReadTransaction(open val transaction: Transaction) {
     open val logger by getLogger()
 }
@@ -72,38 +108,128 @@ open class WriteTransaction(override val transaction: Transaction) : ReadTransac
     override val logger by getLogger()
 }
 
-/**
- * [ReadTransaction] context / factory
- */
-fun <R> readTransaction(action: ReadTransaction.() -> R): R = createReadSession()
-        .readTransaction { transaction ->
-            ReadTransaction(transaction).action()
-        }
+// Async Transactions
+
+open class ReadAsyncTransaction(open val transaction: AsyncTransaction) {
+    open val logger by getLogger()
+}
+
+open class WriteAsyncTransaction(override val transaction: AsyncTransaction) : ReadAsyncTransaction(transaction = transaction) {
+    override val logger by getLogger()
+}
+
+//
+// Transactions Scopes
+//
+
+// Sync Transactions Scopes
 
 /**
- * [WriteTransaction] context / factory
+ * [ReadTransaction] scope
  */
-fun <R> writeTransaction(action: WriteTransaction.() -> R): R = createWriteSession()
-        .writeTransaction { transaction ->
-            WriteTransaction(transaction).action()
-        }
+fun <R> readTransaction(action: ReadTransaction.() -> R): R {
+    return createReadSession()
+            .readTransaction { transaction ->
+                ReadTransaction(transaction).action()
+            }
+}
+
+/**
+ * [WriteTransaction] scope
+ */
+fun <R> writeTransaction(action: WriteTransaction.() -> R): R {
+    return createWriteSession()
+            .writeTransaction { transaction ->
+                WriteTransaction(transaction).action()
+            }
+}
+
+// Async Transactions Scopes
+
+/**
+ * [ReadAsyncTransaction] scope
+ */
+suspend fun <R> readAsyncTransaction(action: suspend ReadAsyncTransaction.() -> R): R {
+    val session = createReadAsyncSession()
+    try {
+        val transaction = session.beginTransactionAsync().await()
+        return ReadAsyncTransaction(transaction).action()
+    } finally {
+        session.closeAsync().await()
+    }
+}
+
+/**
+ * [WriteAsyncTransaction] scope
+ */
+suspend fun <R> writeAsyncTransaction(action: suspend WriteAsyncTransaction.() -> R): R {
+    val session = createWriteAsyncSession()
+    try {
+        val transaction = session.beginTransactionAsync().await()
+        val result = WriteAsyncTransaction(transaction).action()
+        transaction.commitAsync().await()
+        return result
+    } finally {
+        session.closeAsync().await()
+    }
+}
+
+//
+// Transaction Scope Extensions
+//
+
+// Sync Transaction Scope Extensions
 
 /**
  * Cypher Query Runner using [WriteTransaction]
  */
-fun <R> WriteTransaction.write(query: String, parameters: Map<String, Any> = emptyMap(), transform: (Result) -> R): R {
+fun <R> WriteTransaction.write(
+        query: String,
+        parameters: Map<String, Any> = emptyMap(),
+        transform: (Result) -> R): R {
+
     logger.trace("write:[\n$query\n]")
-    return transaction
-            .run(query, parameters)
-            .let(transform)
+    val result = transaction.run(query, parameters)
+    return transform(result)
 }
 
 /**
  * Cypher Query Runner using [ReadTransaction]
  */
-fun <R> ReadTransaction.read(query: String, parameters: Map<String, Any> = emptyMap(), transform: (Result) -> R): R {
+fun <R> ReadTransaction.read(
+        query: String,
+        parameters: Map<String, Any> = emptyMap(),
+        transform: (Result) -> R): R {
+
     logger.trace("read:[\n$query\n]")
-    return transaction
-            .run(query, parameters)
-            .let(transform)
+    val result = transaction.run(query, parameters)
+    return transform(result)
+}
+
+// Async Transaction Scope Extensions
+
+/**
+ * Cypher Query Runner using [WriteAsyncTransaction]
+ */
+suspend fun <R> WriteAsyncTransaction.write(
+        query: String,
+        parameters: Map<String, Any> = emptyMap(),
+        transform: suspend (ResultCursor) -> R): R {
+
+    logger.trace("write:[\n$query\n]")
+    val result = transaction.runAsync(query, parameters).await()
+    return transform(result)
+}
+
+/**
+ * Cypher Query Runner using [ReadAsyncTransaction]
+ */
+suspend fun <R> ReadAsyncTransaction.read(
+        query: String,
+        parameters: Map<String, Any> = emptyMap(),
+        transform: suspend (ResultCursor) -> R): R {
+
+    logger.trace("read:[\n$query\n]")
+    val result = transaction.runAsync(query, parameters).await()
+    return transform(result)
 }
