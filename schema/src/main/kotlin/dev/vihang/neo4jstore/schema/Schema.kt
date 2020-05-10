@@ -1,11 +1,14 @@
 package dev.vihang.neo4jstore.schema
 
 import arrow.core.Either
+import arrow.core.extensions.list.foldable.nonEmpty
 import arrow.core.flatMap
 import arrow.core.right
 import com.fasterxml.jackson.core.type.TypeReference
 import dev.vihang.common.jsonmapper.objectMapper
+import dev.vihang.neo4jstore.client.ReadAsyncTransaction
 import dev.vihang.neo4jstore.client.ReadTransaction
+import dev.vihang.neo4jstore.client.WriteAsyncTransaction
 import dev.vihang.neo4jstore.client.WriteTransaction
 import dev.vihang.neo4jstore.client.read
 import dev.vihang.neo4jstore.client.write
@@ -15,10 +18,11 @@ import dev.vihang.neo4jstore.error.NotDeletedError
 import dev.vihang.neo4jstore.error.NotFoundError
 import dev.vihang.neo4jstore.error.NotUpdatedError
 import dev.vihang.neo4jstore.error.StoreError
-import dev.vihang.neo4jstore.schema.model.HasId
 import dev.vihang.neo4jstore.schema.ObjectHandler.getProperties
 import dev.vihang.neo4jstore.schema.ObjectHandler.getStringProperties
+import dev.vihang.neo4jstore.schema.model.HasId
 import dev.vihang.neo4jstore.schema.model.Relation
+import kotlinx.coroutines.future.await
 import kotlin.reflect.KClass
 
 data class EntityType<ENTITY : HasId>(
@@ -66,6 +70,17 @@ class EntityStore<E : HasId>(val entityType: EntityType<E>) {
         }
     }
 
+    suspend fun get(id: String, readAsyncTransaction: ReadAsyncTransaction): Either<StoreError, E> {
+        return readAsyncTransaction.read("""MATCH (node:${entityType.name} {id: '$id'}) RETURN node;""")
+        { resultCursor ->
+            val records = resultCursor.listAsync().await()
+            if (records.nonEmpty())
+                Either.right(entityType.createEntity(records.single().get("node").asMap()))
+            else
+                Either.left(NotFoundError(type = entityType.name, id = id))
+        }
+    }
+
     fun create(entity: E, writeTransaction: WriteTransaction): Either<StoreError, Unit> {
 
         return doNotExist(entity.id, writeTransaction).flatMap {
@@ -76,6 +91,22 @@ class EntityStore<E : HasId>(val entityType: EntityType<E>) {
             writeTransaction.write(query = """CREATE (node:${entityType.name} ${'$'}props);""",
                     parameters = parameters) {
                 if (it.consume().counters().nodesCreated() == 1)
+                    Unit.right()
+                else
+                    Either.left(NotCreatedError(type = entityType.name, id = entity.id))
+            }
+        }
+    }
+
+    suspend fun create(entity: E, writeAsyncTransaction: WriteAsyncTransaction): Either<StoreError, Unit> {
+
+        return doNotExist(entity.id, writeAsyncTransaction).flatMapSuspend {
+            val properties = getStringProperties(entity).toMutableMap()
+            properties.putIfAbsent("id", entity.id)
+            val parameters: Map<String, Any> = mapOf("props" to properties)
+            writeAsyncTransaction.write(query = """CREATE (node:${entityType.name} ${'$'}props);""",
+                    parameters = parameters) {
+                if (it.consumeAsync().await().counters().nodesCreated() == 1)
                     Unit.right()
                 else
                     Either.left(NotCreatedError(type = entityType.name, id = entity.id))
@@ -100,6 +131,23 @@ class EntityStore<E : HasId>(val entityType: EntityType<E>) {
         }
     }
 
+    suspend fun <TO : HasId> getRelated(
+            id: String,
+            relationType: RelationType<E, *, TO>,
+            readAsyncTransaction: ReadAsyncTransaction): Either<StoreError, List<TO>> {
+
+        return exists(id, readAsyncTransaction).flatMapSuspend {
+
+            readAsyncTransaction.read("""
+                MATCH (:${relationType.from.name} {id: '$id'})-[:${relationType.name}]->(node:${relationType.to.name})
+                RETURN node;
+                """.trimIndent()) { resultCursor ->
+                Either.right(
+                        resultCursor.listAsync().await().map { record -> relationType.to.createEntity(record["node"].asMap()) })
+            }
+        }
+    }
+
     fun <FROM : HasId> getRelatedFrom(
             id: String,
             relationType: RelationType<FROM, *, E>,
@@ -113,6 +161,23 @@ class EntityStore<E : HasId>(val entityType: EntityType<E>) {
                 """.trimIndent()) { result ->
                 Either.right(
                         result.list { record -> relationType.from.createEntity(record["node"].asMap()) })
+            }
+        }
+    }
+
+    suspend fun <FROM : HasId> getRelatedFrom(
+            id: String,
+            relationType: RelationType<FROM, *, E>,
+            readAsyncTransaction: ReadAsyncTransaction): Either<StoreError, List<FROM>> {
+
+        return exists(id, readAsyncTransaction).flatMapSuspend {
+
+            readAsyncTransaction.read("""
+                MATCH (node:${relationType.from.name})-[:${relationType.name}]->(:${relationType.to.name} {id: '$id'})
+                RETURN node;
+                """.trimIndent()) { resultCursor ->
+                Either.right(
+                        resultCursor.listAsync().await().map { record -> relationType.from.createEntity(record["node"].asMap()) })
             }
         }
     }
@@ -170,10 +235,28 @@ class EntityStore<E : HasId>(val entityType: EntityType<E>) {
                         ifFalse = { NotFoundError(type = entityType.name, id = id) })
             }
 
+    suspend fun exists(id: String, readAsyncTransaction: ReadAsyncTransaction): Either<StoreError, Unit> =
+            readAsyncTransaction.read("""MATCH (node:${entityType.name} {id: '$id'} ) RETURN count(node);""")
+            { resultCursor ->
+                Either.cond(
+                        test = resultCursor.singleAsync().await()["count(node)"].asInt(0) == 1,
+                        ifTrue = {},
+                        ifFalse = { NotFoundError(type = entityType.name, id = id) })
+            }
+
     private fun doNotExist(id: String, readTransaction: ReadTransaction): Either<StoreError, Unit> =
             readTransaction.read("""MATCH (node:${entityType.name} {id: '$id'} ) RETURN count(node);""") { result ->
                 Either.cond(
                         test = result.single()["count(node)"].asInt(1) == 0,
+                        ifTrue = {},
+                        ifFalse = { AlreadyExistsError(type = entityType.name, id = id) })
+            }
+
+    private suspend fun doNotExist(id: String, readAsyncTransaction: ReadAsyncTransaction): Either<StoreError, Unit> =
+            readAsyncTransaction.read("""MATCH (node:${entityType.name} {id: '$id'} ) RETURN count(node);""")
+            { resultCursor ->
+                Either.cond(
+                        test = resultCursor.singleAsync().await()["count(node)"].asInt(1) == 0,
                         ifTrue = {},
                         ifFalse = { AlreadyExistsError(type = entityType.name, id = id) })
             }
@@ -190,7 +273,7 @@ class RelationStore<FROM : HasId, RELATION : Any, TO : HasId>(private val relati
 
         val properties = getStringProperties(relation as Any)
         val parameters: Map<String, Any> = mapOf("props" to properties)
-        return writeTransaction.write( query = """
+        return writeTransaction.write(query = """
                     MATCH (from:${relationType.from.name} { id: '${from.id}' }),(to:${relationType.to.name} { id: '${to.id}' })
                     CREATE (from)-[:${relationType.name} ${'$'}props ]->(to);
                     """.trimIndent(),
@@ -446,6 +529,22 @@ class UniqueRelationStore<FROM : HasId, RELATION : Any, TO : HasId>(private val 
     }
 
     // If relation exists, then it fails with Already Exists Error, else it creates new relation.
+    suspend fun create(fromId: String, toId: String, writeAsyncTransaction: WriteAsyncTransaction): Either<StoreError, Unit> {
+
+        return doNotExist(fromId, toId, writeAsyncTransaction).flatMapSuspend {
+            writeAsyncTransaction.write("""
+                        MATCH (fromId:${relationType.from.name} {id: '$fromId'}),(toId:${relationType.to.name} {id: '$toId'})
+                        MERGE (fromId)-[:${relationType.name}]->(toId)
+                        """.trimMargin()) { resultCursor ->
+
+                Either.cond(resultCursor.consumeAsync().await().counters().relationshipsCreated() == 1,
+                        ifTrue = { Unit },
+                        ifFalse = { NotCreatedError(relationType.name, "$fromId -> $toId") })
+            }
+        }
+    }
+
+    // If relation exists, then it fails with Already Exists Error, else it creates new relation.
     fun create(fromId: String, relation: RELATION, toId: String, writeTransaction: WriteTransaction): Either<StoreError, Unit> {
 
         return doNotExist(fromId, toId, writeTransaction).flatMap {
@@ -474,8 +573,8 @@ class UniqueRelationStore<FROM : HasId, RELATION : Any, TO : HasId>(private val 
         Either.cond(result.hasNext(),
                 ifTrue = { relationType.createRelation(result.single()["r"].asMap()) },
                 ifFalse = { NotFoundError(relationType.name, "$fromId -> $toId") })
-                .flatMap {
-                    relation -> relation.right()
+                .flatMap { relation ->
+                    relation.right()
                 }
     }
 
@@ -496,6 +595,18 @@ class UniqueRelationStore<FROM : HasId, RELATION : Any, TO : HasId>(private val 
 
         Either.cond(
                 test = result.single()["count(r)"].asInt(1) == 0,
+                ifTrue = {},
+                ifFalse = { AlreadyExistsError(type = relationType.name, id = "$fromId -> $toId") })
+
+    }
+
+    private suspend fun doNotExist(fromId: String, toId: String, readAsyncTransaction: ReadAsyncTransaction): Either<StoreError, Unit> = readAsyncTransaction.read("""
+                MATCH (:${relationType.from.name} {id: '$fromId'})-[r:${relationType.name}]->(:${relationType.to.name} {id: '$toId'})
+                RETURN count(r)
+                """.trimMargin()) { result ->
+
+        Either.cond(
+                test = result.singleAsync().await()["count(r)"].asInt(1) == 0,
                 ifTrue = {},
                 ifFalse = { AlreadyExistsError(type = relationType.name, id = "$fromId -> $toId") })
 
