@@ -1,7 +1,6 @@
 package dev.vihang.neo4jstore.schema
 
-import arrow.core.Either
-import arrow.core.extensions.fx
+import arrow.core.computations.either
 import com.palantir.docker.compose.DockerComposeExtension
 import com.palantir.docker.compose.connection.waiting.HealthChecks
 import dev.vihang.neo4jstore.client.Config
@@ -13,6 +12,7 @@ import dev.vihang.neo4jstore.client.writeTransaction
 import dev.vihang.neo4jstore.error.StoreError
 import dev.vihang.neo4jstore.schema.model.HasId
 import dev.vihang.neo4jstore.schema.model.Relation
+import kotlinx.coroutines.runBlocking
 import org.amshove.kluent.`should be equal to`
 import org.joda.time.Duration
 import org.junit.jupiter.api.AfterAll
@@ -54,10 +54,10 @@ class UniqueRelationStoreTest {
     private val identifiesStore = UniqueRelationStore(identifiesType)
 
     @Test
-    fun createIfAbsent() {
+    fun createIfAbsent() = runBlocking {
 
         writeTransaction {
-            Either.fx<StoreError, Unit> {
+            either<StoreError, Unit> {
 
                 // create entities
 
@@ -95,13 +95,13 @@ class UniqueRelationStoreTest {
                 it.message
             }
         }
+        Unit
     }
 
     @Test
-    fun createOrUpdate() {
-
+    fun createOrUpdate() = runBlocking {
         writeTransaction {
-            Either.fx<StoreError, Unit> {
+            either<StoreError, Unit> {
 
                 // create entities
 
@@ -139,14 +139,13 @@ class UniqueRelationStoreTest {
                 it.message
             }
         }
+        Unit
     }
 
     @BeforeEach
-    fun clear() {
+    fun clear() = runBlocking {
         writeTransaction {
-            write("MATCH (n) DETACH DELETE n;") {
-
-            }
+            write("MATCH (n) DETACH DELETE n;") {}
         }
     }
 

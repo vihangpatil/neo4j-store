@@ -10,7 +10,7 @@ cache:
 
 install: echo "skip 'gradle assemble' step"
 
-jdk: openjdk13
+jdk: openjdk15
 
 script:
   - ./gradlew build -info --stacktrace

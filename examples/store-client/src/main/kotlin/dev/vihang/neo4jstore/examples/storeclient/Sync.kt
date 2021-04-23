@@ -1,19 +1,17 @@
 package dev.vihang.neo4jstore.examples.storeclient
 
-import arrow.core.Either
-import arrow.core.extensions.fx
+import arrow.core.computations.either
 import dev.vihang.neo4jstore.client.Config
 import dev.vihang.neo4jstore.client.ConfigRegistry
 import dev.vihang.neo4jstore.client.Neo4jClient
 import dev.vihang.neo4jstore.client.writeTransaction
 import dev.vihang.neo4jstore.error.StoreError
-import dev.vihang.neo4jstore.schema.EntityStore
-import dev.vihang.neo4jstore.schema.model.None
 import dev.vihang.neo4jstore.schema.RelationType
 import dev.vihang.neo4jstore.schema.UniqueRelationStore
 import dev.vihang.neo4jstore.schema.entityStore
+import kotlinx.coroutines.runBlocking
 
-fun main() {
+fun main() = runBlocking {
 
     // init
     ConfigRegistry.config = Config()
@@ -29,7 +27,7 @@ fun main() {
         val hasRoleStore = UniqueRelationStore(relationType = hasRoleType)
 
         writeTransaction {
-            Either.fx<StoreError, Unit> {
+            either<StoreError, Unit> {
 
                 userStore.create(User(id = "id1", name = "Alice"), writeTransaction = this@writeTransaction).bind()
                 userStore.create(User(id = "id2", name = "Bob"), writeTransaction = this@writeTransaction).bind()
@@ -52,19 +50,18 @@ fun main() {
                 hasRoleStore.create(fromId = "id2", toId = "user", writeTransaction = this@writeTransaction).bind()
 
                 val relatedRole: Role = userStore.getRelated("id1", hasRoleType, readTransaction = this@writeTransaction)
-                        .bind()
-                        .single()
+                    .bind()
+                    .single()
                 println(relatedRole)
 
-                val relatedUser = roleStore.getRelatedFrom("user", hasRoleType, readTransaction = this@writeTransaction)
-                        .bind()
-                        .single()
+                val relatedUser: User = roleStore.getRelatedFrom("user", hasRoleType, readTransaction = this@writeTransaction)
+                    .bind()
+                    .single()
                 println(relatedUser)
-
             }
         }
-
     } finally {
         Neo4jClient.stop()
     }
+    Unit
 }

@@ -1,7 +1,9 @@
 package dev.vihang.neo4jstore.client
 
 import dev.vihang.common.logging.getLogger
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.future.await
+import kotlinx.coroutines.withContext
 import org.neo4j.driver.AccessMode.READ
 import org.neo4j.driver.AccessMode.WRITE
 import org.neo4j.driver.AuthTokens
@@ -15,8 +17,6 @@ import org.neo4j.driver.async.AsyncSession
 import org.neo4j.driver.async.AsyncTransaction
 import org.neo4j.driver.async.ResultCursor
 import java.net.URI
-import java.util.concurrent.CompletableFuture
-import java.util.concurrent.CompletionStage
 import java.util.concurrent.TimeUnit.SECONDS
 
 /**
@@ -127,21 +127,25 @@ open class WriteAsyncTransaction(override val transaction: AsyncTransaction) : R
 /**
  * [ReadTransaction] scope
  */
-fun <R> readTransaction(action: ReadTransaction.() -> R): R {
-    return createReadSession()
-            .readTransaction { transaction ->
-                ReadTransaction(transaction).action()
-            }
+suspend fun <R> readTransaction(action: ReadTransaction.() -> R): R {
+    createReadSession().use { session ->
+        val transaction = session.beginTransaction()
+        return withContext(Dispatchers.IO) {
+            ReadTransaction(transaction).action()
+        }
+    }
 }
 
 /**
  * [WriteTransaction] scope
  */
-fun <R> writeTransaction(action: WriteTransaction.() -> R): R {
-    return createWriteSession()
-            .writeTransaction { transaction ->
-                WriteTransaction(transaction).action()
-            }
+suspend fun <R> writeTransaction(action: suspend WriteTransaction.() -> R): R {
+    createWriteSession().use { session ->
+        val transaction = session.beginTransaction()
+        return withContext(Dispatchers.IO) {
+            WriteTransaction(transaction).action()
+        }
+    }
 }
 
 // Async Transactions Scopes
@@ -153,7 +157,9 @@ suspend fun <R> readAsyncTransaction(action: suspend ReadAsyncTransaction.() -> 
     val session = createReadAsyncSession()
     try {
         val transaction = session.beginTransactionAsync().await()
-        return ReadAsyncTransaction(transaction).action()
+        return withContext(Dispatchers.IO) {
+            ReadAsyncTransaction(transaction).action()
+        }
     } finally {
         session.closeAsync().await()
     }
@@ -166,9 +172,11 @@ suspend fun <R> writeAsyncTransaction(action: suspend WriteAsyncTransaction.() -
     val session = createWriteAsyncSession()
     try {
         val transaction = session.beginTransactionAsync().await()
-        val result = WriteAsyncTransaction(transaction).action()
-        transaction.commitAsync().await()
-        return result
+        return withContext(Dispatchers.IO) {
+            val result = WriteAsyncTransaction(transaction).action()
+            transaction.commitAsync().await()
+            result
+        }
     } finally {
         session.closeAsync().await()
     }

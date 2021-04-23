@@ -1,7 +1,6 @@
 package dev.vihang.neo4jstore.examples.dslclient
 
-import arrow.core.Either
-import arrow.core.extensions.fx
+import arrow.core.computations.either
 import dev.vihang.neo4jstore.client.Config
 import dev.vihang.neo4jstore.client.ConfigRegistry
 import dev.vihang.neo4jstore.client.Neo4jClient
@@ -11,15 +10,16 @@ import dev.vihang.neo4jstore.dsl.update
 import dev.vihang.neo4jstore.dsl.get
 import dev.vihang.neo4jstore.dsl.link
 import dev.vihang.neo4jstore.error.StoreError
+import kotlinx.coroutines.runBlocking
 
-fun main() {
+fun main() = runBlocking {
     // init
     ConfigRegistry.config = Config()
     Neo4jClient.start()
 
     try {
         writeTransaction {
-            Either.fx<StoreError, Unit> {
+            either<StoreError, Unit> {
 
                 // create users
                 create { User(id = "id1", name = "Alice") }.bind()
@@ -55,4 +55,5 @@ fun main() {
     } finally {
         Neo4jClient.stop()
     }
+    Unit
 }

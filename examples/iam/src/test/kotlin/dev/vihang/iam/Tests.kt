@@ -1,7 +1,6 @@
 package dev.vihang.iam
 
-import arrow.core.Either
-import arrow.core.extensions.fx
+import arrow.core.computations.either
 import com.palantir.docker.compose.DockerComposeExtension
 import com.palantir.docker.compose.connection.waiting.HealthChecks
 import dev.vihang.iam.model.Action
@@ -38,6 +37,7 @@ import dev.vihang.neo4jstore.dsl.create
 import dev.vihang.neo4jstore.dsl.get
 import dev.vihang.neo4jstore.dsl.link
 import dev.vihang.neo4jstore.error.StoreError
+import kotlinx.coroutines.runBlocking
 import org.amshove.kluent.`should be equal to`
 import org.joda.time.Duration
 import org.junit.jupiter.api.AfterAll
@@ -47,15 +47,14 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.extension.RegisterExtension
 import org.junit.jupiter.api.fail
-import kotlin.test.assertEquals
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class Tests {
 
     @Test
-    fun test() {
+    fun test() = runBlocking {
         writeTransaction {
-            Either.fx<StoreError, Unit> {
+            either<StoreError, Unit> {
 
                 // create entities
 
@@ -144,10 +143,11 @@ class Tests {
                 it.message
             }
         }
+        Unit
     }
 
     @BeforeEach
-    fun clear() {
+    fun clear() = runBlocking {
         writeTransaction {
             write("MATCH (n) DETACH DELETE n;") {
 

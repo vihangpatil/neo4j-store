@@ -21,23 +21,23 @@ allprojects {
     mavenCentral()
     jcenter()
     // docker-compose-junit is published on bintray
-    maven { url = uri("https://dl.bintray.com/palantir/releases") }
+    maven("https://dl.bintray.com/palantir/releases")
   }
-}
 
-tasks.withType<KotlinCompile>().configureEach {
-  kotlinOptions {
-    jvmTarget = JavaVersion.VERSION_13.majorVersion
+  tasks.withType<JavaCompile>().configureEach {
+    sourceCompatibility = JavaVersion.VERSION_15.toString()
+    targetCompatibility = JavaVersion.VERSION_15.toString()
   }
-}
 
-java {
-  sourceCompatibility = JavaVersion.VERSION_13
-  targetCompatibility = JavaVersion.VERSION_13
+  tasks.withType<KotlinCompile>().configureEach {
+    kotlinOptions {
+      jvmTarget = JavaVersion.VERSION_15.majorVersion
+    }
+  }
 }
 
 idea {
-  targetVersion = JavaVersion.VERSION_13.majorVersion
+  targetVersion = JavaVersion.VERSION_15.majorVersion
 }
 
 fun isNonStable(version: String): Boolean {

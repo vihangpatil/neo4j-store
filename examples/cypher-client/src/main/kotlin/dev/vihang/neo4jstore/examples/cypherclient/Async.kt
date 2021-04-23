@@ -10,33 +10,28 @@ import dev.vihang.neo4jstore.client.writeAsyncTransaction
 import kotlinx.coroutines.future.await
 import kotlinx.coroutines.runBlocking
 
-fun main() {
+fun main() = runBlocking {
 
     // init
     ConfigRegistry.config = Config()
     Neo4jClient.start()
 
     try {
-
-        runBlocking {
-
-            readAsyncTransaction {
-                read(query = "MATCH (n) RETURN n;") {
-                    resultCursor ->
-                    val nodesDeleted = resultCursor.consumeAsync().await().counters().nodesDeleted()
-                    println("Nodes deleted: $nodesDeleted")
-                    nodesDeleted
-                }
-            }
-
-            writeAsyncTransaction {
-                write(query = "MATCH (n) DELETE n;") {
-                    resultCursor ->
-                    println("Nodes deleted: ${resultCursor.consumeAsync().await().counters().nodesDeleted()}")
-                }
+        readAsyncTransaction {
+            read(query = "MATCH (n) RETURN n;") {
+                resultCursor ->
+                val nodesDeleted = resultCursor.consumeAsync().await().counters().nodesDeleted()
+                println("Nodes deleted: $nodesDeleted")
+                nodesDeleted
             }
         }
 
+        writeAsyncTransaction {
+            write(query = "MATCH (n) DELETE n;") {
+                resultCursor ->
+                println("Nodes deleted: ${resultCursor.consumeAsync().await().counters().nodesDeleted()}")
+            }
+        }
     } finally {
         Neo4jClient.stop()
     }

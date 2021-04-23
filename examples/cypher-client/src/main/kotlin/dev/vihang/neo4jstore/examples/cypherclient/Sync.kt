@@ -7,8 +7,9 @@ import dev.vihang.neo4jstore.client.read
 import dev.vihang.neo4jstore.client.readTransaction
 import dev.vihang.neo4jstore.client.write
 import dev.vihang.neo4jstore.client.writeTransaction
+import kotlinx.coroutines.runBlocking
 
-fun main() {
+fun main() = runBlocking {
 
     // init
     ConfigRegistry.config = Config()

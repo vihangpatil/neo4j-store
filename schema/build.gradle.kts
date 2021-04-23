@@ -11,8 +11,7 @@ dependencies {
   api("org.neo4j.driver:neo4j-java-driver:${Version.neo4jDriver}")
   implementation("org.neo4j:neo4j-slf4j:${Version.neo4j}")
 
-  api("io.arrow-kt:arrow-fx:${Version.arrow}")
-  api("io.arrow-kt:arrow-syntax:${Version.arrow}")
+  api("io.arrow-kt:arrow-core:${Version.arrow}")
 
   testImplementation("com.palantir.docker.compose:docker-compose-junit-jupiter:${Version.dockerComposeJunit}")
 
