@@ -1,8 +1,8 @@
 plugins {
-  `java-library`
-  kotlin("jvm")
+    `java-library`
+    kotlin("jvm")
 }
 
 dependencies {
-  implementation(project(":schema"))
+    implementation(project(":schema"))
 }

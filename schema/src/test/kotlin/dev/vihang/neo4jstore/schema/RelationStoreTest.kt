@@ -39,10 +39,10 @@ class RelationStoreTest {
 
     // schema
     private val identifiesRelation = Relation(
-            name = "IDENTIFIES",
-            from = Identity::class,
-            relation = None::class,
-            to = User::class
+        name = "IDENTIFIES",
+        from = Identity::class,
+        relation = None::class,
+        to = User::class
     )
 
     private val identityStore = Identity::class.entityStore
@@ -53,7 +53,7 @@ class RelationStoreTest {
     @Test
     fun createFromIds() = runBlocking {
         writeTransaction {
-            either<StoreError,Unit> {
+            either<StoreError, Unit> {
 
                 // create entities
 
@@ -65,9 +65,9 @@ class RelationStoreTest {
 
                 // create relation
                 identifiesStore.create(
-                        fromIds = listOf("one@foo.com", "two@foo.com", "three@foo.com"),
-                        toId = "some_user",
-                        writeTransaction = this@writeTransaction
+                    fromIds = listOf("one@foo.com", "two@foo.com", "three@foo.com"),
+                    toId = "some_user",
+                    writeTransaction = this@writeTransaction
                 ).bind()
 
                 read("MATCH (:Identity)-[r:IDENTIFIES]->(:User) RETURN r;") { result ->
@@ -89,7 +89,7 @@ class RelationStoreTest {
     @Test
     fun createToIds() = runBlocking {
         writeTransaction {
-            either<StoreError,Unit> {
+            either<StoreError, Unit> {
 
                 // create entities
 
@@ -101,9 +101,9 @@ class RelationStoreTest {
 
                 // create relation
                 identifiesStore.create(
-                        fromId = "foo@bar.com",
-                        toIds = listOf("user_1", "user_2", "user_3"),
-                        writeTransaction = this@writeTransaction
+                    fromId = "foo@bar.com",
+                    toIds = listOf("user_1", "user_2", "user_3"),
+                    writeTransaction = this@writeTransaction
                 ).bind()
 
                 read("MATCH (:Identity)-[r:IDENTIFIES]->(:User) RETURN r;") { result ->
@@ -145,13 +145,15 @@ class RelationStoreTest {
         @RegisterExtension
         @JvmField
         var docker: DockerComposeExtension = DockerComposeExtension.builder()
-                .file("src/test/resources/docker-compose.yaml")
-                .waitingForService("neo4j", HealthChecks.toHaveAllPortsOpen())
-                .waitingForService("neo4j",
-                        HealthChecks.toRespond2xxOverHttp(7474) { port ->
-                            port.inFormat("http://\$HOST:\$EXTERNAL_PORT/browser")
-                        },
-                        Duration.standardSeconds(40L))
-                .build()
+            .file("src/test/resources/docker-compose.yaml")
+            .waitingForService("neo4j", HealthChecks.toHaveAllPortsOpen())
+            .waitingForService(
+                "neo4j",
+                HealthChecks.toRespond2xxOverHttp(7474) { port ->
+                    port.inFormat("http://\$HOST:\$EXTERNAL_PORT/browser")
+                },
+                Duration.standardSeconds(40L)
+            )
+            .build()
     }
 }

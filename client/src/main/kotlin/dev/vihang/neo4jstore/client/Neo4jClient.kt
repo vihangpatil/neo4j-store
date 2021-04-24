@@ -23,8 +23,8 @@ import java.util.concurrent.TimeUnit.SECONDS
  * Config for Neo4jClient
  */
 data class Config(
-        val host: String = "localhost",
-        val protocol: String = "bolt"
+    val host: String = "localhost",
+    val protocol: String = "bolt"
 )
 
 object ConfigRegistry {
@@ -39,14 +39,15 @@ object Neo4jClient {
 
     fun start() {
         val config = org.neo4j.driver.Config.builder()
-                .withoutEncryption()
-                .withConnectionTimeout(10, SECONDS)
-                .withMaxConnectionPoolSize(1000)
-                .build()
+            .withoutEncryption()
+            .withConnectionTimeout(10, SECONDS)
+            .withMaxConnectionPoolSize(1000)
+            .build()
         driver = GraphDatabase.driver(
-                URI("${ConfigRegistry.config.protocol}://${ConfigRegistry.config.host}:7687"),
-                AuthTokens.none(),
-                config) ?: throw Exception("Unable to get Neo4j client driver instance")
+            URI("${ConfigRegistry.config.protocol}://${ConfigRegistry.config.host}:7687"),
+            AuthTokens.none(),
+            config
+        ) ?: throw Exception("Unable to get Neo4j client driver instance")
     }
 
     fun stop() {
@@ -62,16 +63,16 @@ object Neo4jClient {
 
 fun createReadSession(): Session {
     val sessionConfig = SessionConfig.builder()
-            .withDefaultAccessMode(READ)
-            .build()
+        .withDefaultAccessMode(READ)
+        .build()
 
     return Neo4jClient.driver.session(sessionConfig)
 }
 
 fun createWriteSession(): Session {
     val sessionConfig = SessionConfig.builder()
-            .withDefaultAccessMode(WRITE)
-            .build()
+        .withDefaultAccessMode(WRITE)
+        .build()
 
     return Neo4jClient.driver.session(sessionConfig)
 }
@@ -80,16 +81,16 @@ fun createWriteSession(): Session {
 
 fun createReadAsyncSession(): AsyncSession {
     val sessionConfig = SessionConfig.builder()
-            .withDefaultAccessMode(READ)
-            .build()
+        .withDefaultAccessMode(READ)
+        .build()
 
     return Neo4jClient.driver.asyncSession(sessionConfig)
 }
 
 fun createWriteAsyncSession(): AsyncSession {
     val sessionConfig = SessionConfig.builder()
-            .withDefaultAccessMode(WRITE)
-            .build()
+        .withDefaultAccessMode(WRITE)
+        .build()
 
     return Neo4jClient.driver.asyncSession(sessionConfig)
 }
@@ -100,21 +101,29 @@ fun createWriteAsyncSession(): AsyncSession {
 
 // Sync Transactions
 
-open class ReadTransaction(open val transaction: Transaction) {
+open class ReadTransaction(
+    open val transaction: Transaction,
+) {
     open val logger by getLogger()
 }
 
-open class WriteTransaction(override val transaction: Transaction) : ReadTransaction(transaction = transaction) {
+open class WriteTransaction(
+    override val transaction: Transaction,
+) : ReadTransaction(transaction = transaction) {
     override val logger by getLogger()
 }
 
 // Async Transactions
 
-open class ReadAsyncTransaction(open val transaction: AsyncTransaction) {
+open class ReadAsyncTransaction(
+    open val transaction: AsyncTransaction,
+) {
     open val logger by getLogger()
 }
 
-open class WriteAsyncTransaction(override val transaction: AsyncTransaction) : ReadAsyncTransaction(transaction = transaction) {
+open class WriteAsyncTransaction(
+    override val transaction: AsyncTransaction,
+) : ReadAsyncTransaction(transaction = transaction) {
     override val logger by getLogger()
 }
 
@@ -127,10 +136,12 @@ open class WriteAsyncTransaction(override val transaction: AsyncTransaction) : R
 /**
  * [ReadTransaction] scope
  */
-suspend fun <R> readTransaction(action: ReadTransaction.() -> R): R {
-    createReadSession().use { session ->
+suspend fun <R> readTransaction(
+    action: ReadTransaction.() -> R,
+): R {
+    return createReadSession().use { session ->
         val transaction = session.beginTransaction()
-        return withContext(Dispatchers.IO) {
+        withContext(Dispatchers.IO) {
             ReadTransaction(transaction).action()
         }
     }
@@ -139,10 +150,12 @@ suspend fun <R> readTransaction(action: ReadTransaction.() -> R): R {
 /**
  * [WriteTransaction] scope
  */
-suspend fun <R> writeTransaction(action: suspend WriteTransaction.() -> R): R {
-    createWriteSession().use { session ->
+suspend fun <R> writeTransaction(
+    action: suspend WriteTransaction.() -> R,
+): R {
+    return createWriteSession().use { session ->
         val transaction = session.beginTransaction()
-        return withContext(Dispatchers.IO) {
+        withContext(Dispatchers.IO) {
             WriteTransaction(transaction).action()
         }
     }
@@ -153,7 +166,9 @@ suspend fun <R> writeTransaction(action: suspend WriteTransaction.() -> R): R {
 /**
  * [ReadAsyncTransaction] scope
  */
-suspend fun <R> readAsyncTransaction(action: suspend ReadAsyncTransaction.() -> R): R {
+suspend fun <R> readAsyncTransaction(
+    action: suspend ReadAsyncTransaction.() -> R,
+): R {
     val session = createReadAsyncSession()
     try {
         val transaction = session.beginTransactionAsync().await()
@@ -168,7 +183,9 @@ suspend fun <R> readAsyncTransaction(action: suspend ReadAsyncTransaction.() -> 
 /**
  * [WriteAsyncTransaction] scope
  */
-suspend fun <R> writeAsyncTransaction(action: suspend WriteAsyncTransaction.() -> R): R {
+suspend fun <R> writeAsyncTransaction(
+    action: suspend WriteAsyncTransaction.() -> R,
+): R {
     val session = createWriteAsyncSession()
     try {
         val transaction = session.beginTransactionAsync().await()
@@ -192,10 +209,10 @@ suspend fun <R> writeAsyncTransaction(action: suspend WriteAsyncTransaction.() -
  * Cypher Query Runner using [WriteTransaction]
  */
 fun <R> WriteTransaction.write(
-        query: String,
-        parameters: Map<String, Any> = emptyMap(),
-        transform: (Result) -> R): R {
-
+    query: String,
+    parameters: Map<String, Any> = emptyMap(),
+    transform: (Result) -> R,
+): R {
     logger.trace("write:[\n$query\n]")
     val result = transaction.run(query, parameters)
     return transform(result)
@@ -205,10 +222,10 @@ fun <R> WriteTransaction.write(
  * Cypher Query Runner using [ReadTransaction]
  */
 fun <R> ReadTransaction.read(
-        query: String,
-        parameters: Map<String, Any> = emptyMap(),
-        transform: (Result) -> R): R {
-
+    query: String,
+    parameters: Map<String, Any> = emptyMap(),
+    transform: (Result) -> R,
+): R {
     logger.trace("read:[\n$query\n]")
     val result = transaction.run(query, parameters)
     return transform(result)
@@ -220,10 +237,10 @@ fun <R> ReadTransaction.read(
  * Cypher Query Runner using [WriteAsyncTransaction]
  */
 suspend fun <R> WriteAsyncTransaction.write(
-        query: String,
-        parameters: Map<String, Any> = emptyMap(),
-        transform: suspend (ResultCursor) -> R): R {
-
+    query: String,
+    parameters: Map<String, Any> = emptyMap(),
+    transform: suspend (ResultCursor) -> R,
+): R {
     logger.trace("write:[\n$query\n]")
     val result = transaction.runAsync(query, parameters).await()
     return transform(result)
@@ -233,10 +250,10 @@ suspend fun <R> WriteAsyncTransaction.write(
  * Cypher Query Runner using [ReadAsyncTransaction]
  */
 suspend fun <R> ReadAsyncTransaction.read(
-        query: String,
-        parameters: Map<String, Any> = emptyMap(),
-        transform: suspend (ResultCursor) -> R): R {
-
+    query: String,
+    parameters: Map<String, Any> = emptyMap(),
+    transform: suspend (ResultCursor) -> R,
+): R {
     logger.trace("read:[\n$query\n]")
     val result = transaction.runAsync(query, parameters).await()
     return transform(result)

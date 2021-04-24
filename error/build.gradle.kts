@@ -1,8 +1,8 @@
 plugins {
-  `java-library`
-  kotlin("jvm")
+    `java-library`
+    kotlin("jvm")
 }
 
 dependencies {
-  implementation(kotlin("stdlib-jdk8"))
+    implementation(kotlin("stdlib-jdk8"))
 }

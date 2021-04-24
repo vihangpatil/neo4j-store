@@ -54,9 +54,10 @@ enum class ActionType {
 typealias Action<P> = (P) -> Unit
 
 private fun <L, R> Either<L, R>.addAction(
-        extendedTransaction: ExtendedTransaction,
-        action: Action<R>,
-        actionType: ActionType): Either<L, R> {
+    extendedTransaction: ExtendedTransaction,
+    action: Action<R>,
+    actionType: ActionType
+): Either<L, R> {
 
     this.map { param ->
         extendedTransaction.addAction(actionType) {
@@ -67,14 +68,17 @@ private fun <L, R> Either<L, R>.addAction(
 }
 
 fun <L, R> Either<L, R>.linkReversalActionToTransaction(
-        extendedTransaction: ExtendedTransaction,
-        reversalAction: Action<R>): Either<L, R> = addAction(extendedTransaction, reversalAction, REVERSAL)
+    extendedTransaction: ExtendedTransaction,
+    reversalAction: Action<R>
+): Either<L, R> = addAction(extendedTransaction, reversalAction, REVERSAL)
 
 fun <L, R> Either<L, R>.finallyDo(
-        extendedTransaction: ExtendedTransaction,
-        finalAction: Action<R>): Either<L, R> = addAction(extendedTransaction, finalAction, FINAL)
+    extendedTransaction: ExtendedTransaction,
+    finalAction: Action<R>
+): Either<L, R> = addAction(extendedTransaction, finalAction, FINAL)
 
-fun <L, R> Either<L, R>.ifFailedThenRollback(extendedTransaction: ExtendedTransaction): Either<L, R> = mapLeft { error ->
-    extendedTransaction.rollback()
-    error
-}
+fun <L, R> Either<L, R>.ifFailedThenRollback(extendedTransaction: ExtendedTransaction): Either<L, R> =
+    mapLeft { error ->
+        extendedTransaction.rollback()
+        error
+    }

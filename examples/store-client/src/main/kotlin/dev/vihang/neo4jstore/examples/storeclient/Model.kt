@@ -5,24 +5,24 @@ import dev.vihang.neo4jstore.schema.model.None
 import dev.vihang.neo4jstore.schema.model.Relation
 
 data class User(
-        override val id: String,
-        val name: String
+    override val id: String,
+    val name: String
 ) : HasId {
     // Needed for DSL
     companion object
 }
 
 data class Role(
-        override val id: String,
-        val description: String
+    override val id: String,
+    val description: String
 ) : HasId {
     // Needed for DSL
     companion object
 }
 
 val hasRoleRelation: Relation<User, None, Role> = Relation(
-        name = "HAS_ROLE",
-        from = User::class,
-        relation = None::class,
-        to = Role::class
+    name = "HAS_ROLE",
+    from = User::class,
+    relation = None::class,
+    to = Role::class
 )

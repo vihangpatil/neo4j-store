@@ -10,35 +10,35 @@ annotation class Entity
 @Retention(SOURCE)
 @Target(CLASS)
 annotation class Relation(
-        /**
-         * Unique relation name in capital case separated by underscore
-         */
-        val name: String,
+    /**
+     * Unique relation name in capital case separated by underscore
+     */
+    val name: String,
 
-        /**
-         * Fully qualified name of TO class
-         */
-        val to: String,
+    /**
+     * Fully qualified name of TO class
+     */
+    val to: String,
 
-        /**
-         * FROM forwardRelation TO
-         */
-        val forwardRelation: String,
+    /**
+     * FROM forwardRelation TO
+     */
+    val forwardRelation: String,
 
-        /**
-         * TO reverseRelation FROM
-         */
-        val reverseRelation: String,
+    /**
+     * TO reverseRelation FROM
+     */
+    val reverseRelation: String,
 
-        /**
-         * get FROM forwardQuery TO
-         */
-        val forwardQuery: String,
+    /**
+     * get FROM forwardQuery TO
+     */
+    val forwardQuery: String,
 
-        /**
-         * get TO reverseQuery FROM
-         */
-        val reverseQuery: String
+    /**
+     * get TO reverseQuery FROM
+     */
+    val reverseQuery: String
 )
 
 @Retention(SOURCE)

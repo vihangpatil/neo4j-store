@@ -6,12 +6,13 @@ interface HasId {
     val id: String
 }
 
-class Relation<FROM: HasId, RELATION: Any, TO : HasId>(
-        val name: String,
-        val from: KClass<FROM>,
-        val relation: KClass<RELATION>,
-        val to: KClass<TO>,
-        val isUnique: Boolean = true)
+class Relation<FROM : HasId, RELATION : Any, TO : HasId>(
+    val name: String,
+    val from: KClass<FROM>,
+    val relation: KClass<RELATION>,
+    val to: KClass<TO>,
+    val isUnique: Boolean = true
+)
 
 // Need a dummy Void class with no-arg constructor to represent Relations with no properties.
 class None

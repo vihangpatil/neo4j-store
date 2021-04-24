@@ -42,10 +42,10 @@ class UniqueRelationStoreTest {
 
     // schema
     private val identifiesRelation = Relation(
-            name = "IDENTIFIES",
-            from = Identity::class,
-            relation = Identifies::class,
-            to = User::class
+        name = "IDENTIFIES",
+        from = Identity::class,
+        relation = Identifies::class,
+        to = User::class
     )
 
     private val identityStore = Identity::class.entityStore
@@ -66,18 +66,18 @@ class UniqueRelationStoreTest {
 
                 // create relation
                 identifiesStore.createIfAbsent(
-                        fromId = "foo@bar.com",
-                        toId = "some_user",
-                        relation = Identifies(provider = "bar.com"),
-                        writeTransaction = this@writeTransaction
+                    fromId = "foo@bar.com",
+                    toId = "some_user",
+                    relation = Identifies(provider = "bar.com"),
+                    writeTransaction = this@writeTransaction
                 ).bind()
 
                 // attempt to create duplicate relation
                 identifiesStore.createIfAbsent(
-                        fromId = "foo@bar.com",
-                        toId = "some_user",
-                        relation = Identifies(provider = "test.com"), // changed property
-                        writeTransaction = this@writeTransaction
+                    fromId = "foo@bar.com",
+                    toId = "some_user",
+                    relation = Identifies(provider = "test.com"), // changed property
+                    writeTransaction = this@writeTransaction
                 ).bind()
 
                 write("MATCH (:Identity)-[r:IDENTIFIES]->(:User) RETURN r;") { result ->
@@ -85,7 +85,9 @@ class UniqueRelationStoreTest {
                     // should have only one unique relation
                     recordList.size `should be equal to` 1
                     // that relation should not be updated and should be one which was created first
-                    identifiesType.createRelation(recordList.single()["r"].asMap()) `should be equal to` Identifies(provider = "bar.com")
+                    identifiesType.createRelation(recordList.single()["r"].asMap()) `should be equal to` Identifies(
+                        provider = "bar.com"
+                    )
                 }
 
                 Unit
@@ -110,18 +112,18 @@ class UniqueRelationStoreTest {
 
                 // create relation
                 identifiesStore.createOrUpdate(
-                        fromId = "foo@bar.com",
-                        toId = "some_user",
-                        relation = Identifies(provider = "bar.com"),
-                        writeTransaction = this@writeTransaction
+                    fromId = "foo@bar.com",
+                    toId = "some_user",
+                    relation = Identifies(provider = "bar.com"),
+                    writeTransaction = this@writeTransaction
                 ).bind()
 
                 // attempt to create duplicate relation
                 identifiesStore.createOrUpdate(
-                        fromId = "foo@bar.com",
-                        toId = "some_user",
-                        relation = Identifies(provider = "test.com"),
-                        writeTransaction = this@writeTransaction
+                    fromId = "foo@bar.com",
+                    toId = "some_user",
+                    relation = Identifies(provider = "test.com"),
+                    writeTransaction = this@writeTransaction
                 ).bind()
 
                 read("MATCH (:Identity)-[r:IDENTIFIES]->(:User) RETURN r;") { result ->
@@ -129,7 +131,9 @@ class UniqueRelationStoreTest {
                     // should have only one unique relation
                     recordList.size `should be equal to` 1
                     // that relation should be updated one
-                    identifiesType.createRelation(recordList.single()["r"].asMap()) `should be equal to` Identifies(provider = "test.com")
+                    identifiesType.createRelation(recordList.single()["r"].asMap()) `should be equal to` Identifies(
+                        provider = "test.com"
+                    )
                 }
 
                 Unit
@@ -165,13 +169,15 @@ class UniqueRelationStoreTest {
         @RegisterExtension
         @JvmField
         var docker: DockerComposeExtension = DockerComposeExtension.builder()
-                .file("src/test/resources/docker-compose.yaml")
-                .waitingForService("neo4j", HealthChecks.toHaveAllPortsOpen())
-                .waitingForService("neo4j",
-                        HealthChecks.toRespond2xxOverHttp(7474) { port ->
-                            port.inFormat("http://\$HOST:\$EXTERNAL_PORT/browser")
-                        },
-                        Duration.standardSeconds(40L))
-                .build()
+            .file("src/test/resources/docker-compose.yaml")
+            .waitingForService("neo4j", HealthChecks.toHaveAllPortsOpen())
+            .waitingForService(
+                "neo4j",
+                HealthChecks.toRespond2xxOverHttp(7474) { port ->
+                    port.inFormat("http://\$HOST:\$EXTERNAL_PORT/browser")
+                },
+                Duration.standardSeconds(40L)
+            )
+            .build()
     }
 }
