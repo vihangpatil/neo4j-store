@@ -25,19 +25,19 @@ allprojects {
     }
 
     tasks.withType<JavaCompile>().configureEach {
-        sourceCompatibility = JavaVersion.VERSION_15.toString()
-        targetCompatibility = JavaVersion.VERSION_15.toString()
+        sourceCompatibility = JavaVersion.VERSION_16.toString()
+        targetCompatibility = JavaVersion.VERSION_16.toString()
     }
 
     tasks.withType<KotlinCompile>().configureEach {
         kotlinOptions {
-            jvmTarget = JavaVersion.VERSION_15.majorVersion
+            jvmTarget = JavaVersion.VERSION_16.majorVersion
         }
     }
 }
 
 idea {
-    targetVersion = JavaVersion.VERSION_15.majorVersion
+    targetVersion = JavaVersion.VERSION_16.majorVersion
 }
 
 fun isNonStable(version: String): Boolean {

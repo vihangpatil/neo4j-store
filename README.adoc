@@ -11,7 +11,7 @@ ifdef::env-github[]
 endif::[]
 
 image:https://travis-ci.org/vihangpatil/neo4j-store.svg?branch=master[Build Status]
-image:https://img.shields.io/badge/kotlin-1.4.32-blue.svg[Kotlin version badge]
+image:https://img.shields.io/badge/kotlin-1.5.31-blue.svg?logo=kotlin[Kotlin version badge]
 image:https://img.shields.io/github/license/vihangpatil/neo4j-store.svg[GitHub license]
 
 [WARNING]
