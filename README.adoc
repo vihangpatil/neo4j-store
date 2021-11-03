@@ -10,7 +10,7 @@ ifdef::env-github[]
 :warning-caption: ⚠️
 endif::[]
 
-image:https://travis-ci.org/vihangpatil/neo4j-store.svg?branch=master[Build Status]
+image:https://img.shields.io/github/workflow/status/vihangpatil/neo4j-store/Build/main?logo=github[Build Status]
 image:https://img.shields.io/badge/kotlin-1.5.31-blue.svg?logo=kotlin[Kotlin version badge]
 image:https://img.shields.io/github/license/vihangpatil/neo4j-store.svg[GitHub license]
 
