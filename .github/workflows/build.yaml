@@ -3,7 +3,7 @@ name: Build
 on: [push, workflow_dispatch]
 
 jobs:
-  build-test:
+  build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout the Repository
@@ -14,16 +14,9 @@ jobs:
           java-version: "16"
           distribution: "adopt"
           architecture: x64
-          cache: gradle
       - name: Validate gradle wrapper
         uses: gradle/wrapper-validation-action@v1
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
-      - name: Build arcane-platform-app docker image with gradle
-        run: ./gradlew --no-daemon build
-      - name: Cleanup Gradle Cache
-        # Remove some files from the Gradle cache, so they aren't cached by GitHub Actions.
-        # Restoring these files from a GitHub Actions cache might cause problems for future builds.
-        run: |
-          rm -f ~/.gradle/caches/modules-2/modules-2.lock
-          rm -f ~/.gradle/caches/modules-2/gc.properties
+      - name: Gradle build
+        run: ./gradlew --no-daemon build -info --stacktrace
