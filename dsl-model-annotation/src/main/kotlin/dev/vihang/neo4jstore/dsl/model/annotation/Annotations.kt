@@ -9,6 +9,7 @@ annotation class Entity
 
 @Retention(SOURCE)
 @Target(CLASS)
+@Repeatable
 annotation class Relation(
     /**
      * Unique relation name in capital case separated by underscore
@@ -40,7 +41,3 @@ annotation class Relation(
      */
     val reverseQuery: String
 )
-
-@Retention(SOURCE)
-@Target(CLASS)
-annotation class Relations(val value: Array<Relation>)

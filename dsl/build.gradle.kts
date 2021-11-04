@@ -22,10 +22,6 @@ tasks.withType<ShadowJar> {
     }
 }
 
-tasks.build {
-    dependsOn(tasks.withType<ShadowJar>())
-}
-
 publishing {
     publications {
         create<MavenPublication>("shadow") {

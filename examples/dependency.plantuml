@@ -13,7 +13,7 @@ node neo4j-store {
 node exmaples {
     [cypher-client]
     [store-client]
-    [dsl-kapt-client]
+    [dsl-ksp-client]
     [dsl-client]
 }
 
@@ -25,9 +25,9 @@ node exmaples {
 [dsl] <-- [dsl-client] : uses
 [dsl-model] <-- [dsl-client] : uses
 
-[dsl-model-annotation] <-- [dsl-kapt-client] : uses
-[dsl-annotation-processor] <.. [dsl-kapt-client] : uses
-[dsl] <.. [dsl-kapt-client] : uses
-[dsl-model] <.. [dsl-kapt-client] : uses
+[dsl-model-annotation] <-- [dsl-ksp-client] : uses
+[dsl-annotation-processor] <.. [dsl-ksp-client] : uses
+[dsl] <.. [dsl-ksp-client] : uses
+[dsl-model] <.. [dsl-ksp-client] : uses
 
 @enduml

@@ -1,5 +1,8 @@
 package dev.vihang.neo4jstore.dsl.model.annotation.processor
 
-fun String.snakeToCamelCase() = this.toLowerCase().replace("_[a-z]".toRegex()) {
-    it.value.removePrefix("_").capitalize()
+import java.util.*
+
+fun String.snakeToCamelCase() = this.lowercase().replace("_[a-z]".toRegex()) { result ->
+    result.value.removePrefix("_")
+        .replaceFirstChar { char -> if (char.isLowerCase()) char.titlecase() else char.toString() }
 }

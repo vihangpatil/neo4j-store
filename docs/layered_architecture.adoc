@@ -62,4 +62,4 @@ Sample code is in link:[examples/dsl-client].
 3. Use `dsl-annotation-processor` to generate auto-generate DSL.
 
 You then work on DSL to perform CRUD operations. +
-Sample code is in link:[examples/dsl-kapt-client].
+Sample code is in link:[examples/dsl-ksp-client].

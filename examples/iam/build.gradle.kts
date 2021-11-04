@@ -1,7 +1,7 @@
 plugins {
     `java-library`
     kotlin("jvm")
-    kotlin("kapt")
+    id("com.google.devtools.ksp") version Version.kotlinSymbolProcessing
 }
 
 group = "dev.vihang.iam"
@@ -9,7 +9,7 @@ group = "dev.vihang.iam"
 dependencies {
     implementation(project(":dsl"))
     compileOnly(project(":dsl-model-annotation"))
-    kapt(project(":dsl-annotation-processor"))
+    ksp(project(":dsl-annotation-processor"))
 
     testImplementation("org.testcontainers:junit-jupiter:${Version.testcontainers}")
 

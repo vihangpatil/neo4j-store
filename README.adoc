@@ -70,7 +70,7 @@ unlink { (User withId "foo") hasRole (Role withId "admin") }
 
 [NOTE]
 ====
-* Here, methods such as `*withId*`, `*hasRole*`, `*withRole*` and `*ofUser*` will be provided by auto-generated code by Kotlin Annotation Processor (kapt).
+* Here, methods such as `*withId*`, `*hasRole*`, `*withRole*` and `*ofUser*` will be provided by auto-generated code by Kotlin Symbol Processor (KSP).
 * So, advanced users can also *write methods which are missing in auto-generated code*.
 * But, generic methods such as `*create*`, `*get*`, `*update*`, `*delete*`, `*link*` and `*unlink*` are part of `dsl` and not auto-generated.
 ====
@@ -157,11 +157,6 @@ data class Role(                    // <1>
 This quick start guide is only for layer 3 API. +
 For the details of API for layer 2 and 1, check documentation under `docs`.
 ====
-
-== Limitations
-* Due to the known issue in Kotlin _kapt_, `@Repeatable` annotations are not detected. So if an entity class needs to be
-  annotated with multiple `@Relation` annotations, then use `@Relations` annotation with an array of `Relation`.
-* `get()` operation returns an array even when relation is of type unique.
 
 == Source
 

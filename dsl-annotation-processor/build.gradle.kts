@@ -1,6 +1,5 @@
 plugins {
     kotlin("jvm")
-    kotlin("kapt")
     `maven-publish`
 }
 
@@ -10,6 +9,8 @@ dependencies {
     implementation(project(":dsl-model-annotation"))
 
     implementation("com.squareup:kotlinpoet:${Version.kotlinPoet}")
+
+    implementation("com.google.devtools.ksp:symbol-processing-api:${Version.kotlinSymbolProcessing}")
 }
 
 publishing {

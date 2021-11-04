@@ -73,7 +73,7 @@ This is Koltin Annotation processor library which auto-generates code containing
 ==== dsl-model
 
 Contains DSL grammar context classes which are used by `dsl` project. +
-Needed only if you want to write DSL instead of auto-generating using _kapt_.
+Needed only if you want to write DSL instead of auto-generating using _KSP_.
 
 ==== dsl
 
@@ -97,6 +97,6 @@ Client working at cypher query level.
 
 Client working at Entity and Relation Store level.
 
-=== dsl-client and dsl-kapt-client
+=== dsl-client and dsl-ksp-client
 
 Client working at DSL level.

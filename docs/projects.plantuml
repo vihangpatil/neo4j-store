@@ -3,7 +3,7 @@
 [Layer 1 : cypher-client]
 [Layer 2 : schema-client]
 [Layer 3 : dsl-client]
-[Layer 3 : dsl-kapt-client]
+[Layer 3 : dsl-ksp-client]
 
 package "neo4j-store" {
 
@@ -54,9 +54,9 @@ package "neo4j-store" {
 [Layer 3 : dsl-client] --> [dsl] : uses
 [Layer 3 : dsl-client] --> [dsl-model]: uses
 
-[Layer 3 : dsl-kapt-client] ..> [dsl] : uses
-[Layer 3 : dsl-kapt-client] ..> [dsl-model]: uses
-[Layer 3 : dsl-kapt-client] --> [dsl-annotation-processor]: codegen
-[Layer 3 : dsl-kapt-client] --> [dsl-model-annotation]: codegen
+[Layer 3 : dsl-ksp-client] ..> [dsl] : uses
+[Layer 3 : dsl-ksp-client] ..> [dsl-model]: uses
+[Layer 3 : dsl-ksp-client] --> [dsl-annotation-processor]: codegen
+[Layer 3 : dsl-ksp-client] --> [dsl-model-annotation]: codegen
 
 @enduml

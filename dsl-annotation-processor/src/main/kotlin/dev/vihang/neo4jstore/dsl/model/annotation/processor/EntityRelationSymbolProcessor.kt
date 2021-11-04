@@ -1,77 +1,59 @@
 package dev.vihang.neo4jstore.dsl.model.annotation.processor
 
+import com.google.devtools.ksp.KspExperimental
+import com.google.devtools.ksp.getAnnotationsByType
+import com.google.devtools.ksp.processing.Dependencies
+import com.google.devtools.ksp.processing.Resolver
+import com.google.devtools.ksp.processing.SymbolProcessor
+import com.google.devtools.ksp.processing.SymbolProcessorEnvironment
+import com.google.devtools.ksp.processing.SymbolProcessorProvider
+import com.google.devtools.ksp.symbol.ClassKind
+import com.google.devtools.ksp.symbol.KSAnnotated
+import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.squareup.kotlinpoet.FileSpec
-import dev.vihang.neo4jstore.dsl.model.annotation.Entity
 import dev.vihang.neo4jstore.dsl.model.annotation.Relation
-import dev.vihang.neo4jstore.dsl.model.annotation.Relations
-import java.io.File
-import javax.annotation.processing.AbstractProcessor
-import javax.annotation.processing.RoundEnvironment
 import javax.annotation.processing.SupportedAnnotationTypes
-import javax.annotation.processing.SupportedOptions
 import javax.annotation.processing.SupportedSourceVersion
-import javax.lang.model.element.TypeElement
-import javax.tools.Diagnostic.Kind.ERROR
 
-@SupportedSourceVersion(javax.lang.model.SourceVersion.RELEASE_15)
-@SupportedOptions(EntityRelationAnnotationProcessor.KAPT_KOTLIN_GENERATED_OPTION_NAME)
-@SupportedAnnotationTypes(
-    "dev.vihang.neo4jstore.dsl.model.annotation.Entity",
-    "dev.vihang.neo4jstore.dsl.model.annotation.Relation",
-    "dev.vihang.neo4jstore.dsl.model.annotation.Relations"
-)
-class EntityRelationAnnotationProcessor : AbstractProcessor() {
+class EntityRelationSymbolProcessor(
+    private val environment: SymbolProcessorEnvironment,
+) : SymbolProcessor {
 
-    override fun process(
-        annotations: MutableSet<out TypeElement>?,
-        roundEnv: RoundEnvironment?,
-    ): Boolean {
+    @OptIn(KspExperimental::class)
+    override fun process(resolver: Resolver): List<KSAnnotated> {
 
         // list of entity class info
-        val entityClassList = mutableListOf<ClassInfo>()
+        val entityClassList = resolver
+            // Getting all symbols that are annotated with @Entity.
+            .getSymbolsWithAnnotation("dev.vihang.neo4jstore.dsl.model.annotation.Entity")
+            // Making sure we take only class declarations.
+            .filterIsInstance<KSClassDeclaration>()
+            .filter { it.classKind == ClassKind.CLASS }
+            .map {
+                ClassInfo(it.simpleName.asString(), it.packageName.asString())
+            }
+            .toList()
 
         // list of relation info
         val relationInfoList = mutableListOf<RelationInfo>()
 
-        // list of all classes with @Entity annotation
-        roundEnv?.getElementsAnnotatedWith(Entity::class.java)
-            ?.forEach { element ->
-                val className = element.simpleName.toString()
-                val packageName = processingEnv.elementUtils.getPackageOf(element).toString()
-                entityClassList.add(ClassInfo(className, packageName))
-            }
-
         // set to check if the relation name is unique
         val uniqueRelationNameCheckSet = mutableSetOf<String>()
 
-        roundEnv?.getElementsAnnotatedWith(Relation::class.java)
-            ?.forEach { element ->
+        resolver
+            // Getting all symbols that are annotated with @Relation.
+            .getSymbolsWithAnnotation("dev.vihang.neo4jstore.dsl.model.annotation.Relation")
+            // Making sure we take only class declarations.
+            .filterIsInstance<KSClassDeclaration>()
+            .filter { it.classKind == ClassKind.CLASS }
+            .forEach {
                 // from class info
-                val className = element.simpleName.toString()
-                val packageName = processingEnv.elementUtils.getPackageOf(element).toString()
+                val className = it.simpleName.asString()
+                val packageName = it.packageName.asString()
 
-                val relation = element.getAnnotation(Relation::class.java)
+                val relations = it.getAnnotationsByType(Relation::class)
 
-                if (processRelation(
-                        uniqueRelationNameCheckSet,
-                        relation,
-                        ClassInfo(className, packageName),
-                        relationInfoList
-                    )
-                ) {
-                    return true
-                }
-            }
-
-        roundEnv?.getElementsAnnotatedWith(Relations::class.java)
-            ?.forEach { element ->
-                // from class info
-                val className = element.simpleName.toString()
-                val packageName = processingEnv.elementUtils.getPackageOf(element).toString()
-
-                val relations = element.getAnnotation(Relations::class.java)
-
-                relations.value.forEach { relation ->
+                relations.forEach { relation ->
                     if (processRelation(
                             uniqueRelationNameCheckSet,
                             relation,
@@ -79,13 +61,13 @@ class EntityRelationAnnotationProcessor : AbstractProcessor() {
                             relationInfoList
                         )
                     ) {
-                        return true
+                        return emptyList()
                     }
                 }
             }
 
         generateEntityContext(entityClassList, relationInfoList)
-        return true
+        return emptyList()
     }
 
     private fun processRelation(
@@ -96,7 +78,7 @@ class EntityRelationAnnotationProcessor : AbstractProcessor() {
     ): Boolean {
 
         if (uniqueRelationNameCheckSet.contains(relation.name)) {
-            processingEnv.messager.printMessage(ERROR, "Relation name ${relation.name} is not unique")
+            environment.logger.error("Relation name ${relation.name} is not unique")
             return true
         }
 
@@ -120,8 +102,6 @@ class EntityRelationAnnotationProcessor : AbstractProcessor() {
         entityClassList: List<ClassInfo>,
         relationInfoList: MutableList<RelationInfo>
     ) {
-
-        val kaptKotlinGeneratedDir = processingEnv.options[KAPT_KOTLIN_GENERATED_OPTION_NAME]!!
 
         entityClassList
             .groupBy { it.packageName }
@@ -158,11 +138,14 @@ class EntityRelationAnnotationProcessor : AbstractProcessor() {
                 }
 
                 // write to file
-
-                fileSpec.build().writeTo(File(kaptKotlinGeneratedDir))
-
-                val file = File("$kaptKotlinGeneratedDir/${packageName.replace('.', '/')}", "$fileName.kt")
-                file.appendText(fileContent.toString())
+                val fileWriter = environment.codeGenerator.createNewFile(
+                    dependencies = Dependencies.ALL_FILES,
+                    packageName = packageName,
+                    fileName = fileName
+                ).writer()
+                fileSpec.build().writeTo(fileWriter)
+                fileWriter.append(fileContent.toString())
+                fileWriter.close()
             }
 
         relationInfoList
@@ -246,19 +229,30 @@ class EntityRelationAnnotationProcessor : AbstractProcessor() {
                     fileContent.append("\n\n")
                 }
                 // write to file
-
-                fileSpec.build().writeTo(File(kaptKotlinGeneratedDir))
-
-                val file = File("$kaptKotlinGeneratedDir/${packageName.replace('.', '/')}", "$fileName.kt")
-                file.appendText(fileContent.toString())
+                val fileWriter = environment.codeGenerator.createNewFile(
+                    dependencies = Dependencies.ALL_FILES,
+                    packageName = packageName,
+                    fileName = fileName
+                ).writer()
+                fileSpec.build().writeTo(fileWriter)
+                fileWriter.append(fileContent.toString())
+                fileWriter.close()
             }
 
     }
 
     companion object {
-        const val KAPT_KOTLIN_GENERATED_OPTION_NAME = "kapt.kotlin.generated"
         const val DSL_MODEL_PACKAGE_NAME = "dev.vihang.neo4jstore.dsl.model"
         const val SCHEMA_MODEL_PACKAGE_NAME = "dev.vihang.neo4jstore.schema.model"
         const val SCHEMA_PACKAGE_NAME = "dev.vihang.neo4jstore.schema"
     }
+}
+
+class EntityRelationSymbolProcessorProvider : SymbolProcessorProvider {
+
+    override fun create(
+        environment: SymbolProcessorEnvironment
+    ): SymbolProcessor = EntityRelationSymbolProcessor(
+        environment
+    )
 }

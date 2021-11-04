@@ -2,7 +2,6 @@ package dev.vihang.iam.model
 
 import dev.vihang.neo4jstore.dsl.model.annotation.Entity
 import dev.vihang.neo4jstore.dsl.model.annotation.Relation
-import dev.vihang.neo4jstore.dsl.model.annotation.Relations
 import dev.vihang.neo4jstore.schema.model.HasId
 
 @Entity
@@ -54,25 +53,21 @@ data class Role(
 }
 
 @Entity
-@Relations(
-    [
-        Relation(
-            name = "PERMISSION_FOR_RESOURCE", // Permission FOR_RESOURCE Resource
-            to = "dev.vihang.iam.model.Resource",
-            forwardRelation = "forResource", // Permission forResource Resource
-            reverseRelation = "resourceToPermission", // Resource resourceToPermission Permission
-            forwardQuery = "toResource", // get(Permission forResource [Resource])
-            reverseQuery = "resourceToPermission" // get(Resource resourceToPermission [Permission])
-        ),
-        Relation(
-            name = "PERMITS_ACTION", // Permission PERMITS_ACTION Action
-            to = "dev.vihang.iam.model.Action",
-            forwardRelation = "permitsAction", // Permission permitsAction Action
-            reverseRelation = "isPermittedBy", // Action isPermittedBy Permission
-            forwardQuery = "permittedTo", // get(Permission permittedTo [Action])
-            reverseQuery = "permittedBy" // get(Action permittedBy [Permission])
-        )
-    ]
+@Relation(
+    name = "PERMISSION_FOR_RESOURCE", // Permission FOR_RESOURCE Resource
+    to = "dev.vihang.iam.model.Resource",
+    forwardRelation = "forResource", // Permission forResource Resource
+    reverseRelation = "resourceToPermission", // Resource resourceToPermission Permission
+    forwardQuery = "toResource", // get(Permission forResource [Resource])
+    reverseQuery = "resourceToPermission" // get(Resource resourceToPermission [Permission])
+)
+@Relation(
+    name = "PERMITS_ACTION", // Permission PERMITS_ACTION Action
+    to = "dev.vihang.iam.model.Action",
+    forwardRelation = "permitsAction", // Permission permitsAction Action
+    reverseRelation = "isPermittedBy", // Action isPermittedBy Permission
+    forwardQuery = "permittedTo", // get(Permission permittedTo [Action])
+    reverseQuery = "permittedBy" // get(Action permittedBy [Permission])
 )
 data class Permission(
     override val id: String
