@@ -9,3 +9,12 @@ dependencies {
     compileOnly(project(":dsl-model-annotation"))
     ksp(project(":dsl-annotation-processor"))
 }
+
+kotlin {
+    sourceSets.main {
+        kotlin.srcDir("build/generated/ksp/main/kotlin")
+    }
+    sourceSets.test {
+        kotlin.srcDir("build/generated/ksp/test/kotlin")
+    }
+}

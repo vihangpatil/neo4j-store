@@ -13,6 +13,12 @@ dependencies {
     implementation("com.google.devtools.ksp:symbol-processing-api:${Version.kotlinSymbolProcessing}")
 }
 
+tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
+    kotlinOptions {
+        freeCompilerArgs += listOf("-Xopt-in=kotlin.RequiresOptIn")
+    }
+}
+
 publishing {
     publications {
         create<MavenPublication>("maven") {

@@ -12,8 +12,6 @@ import com.google.devtools.ksp.symbol.KSAnnotated
 import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.squareup.kotlinpoet.FileSpec
 import dev.vihang.neo4jstore.dsl.model.annotation.Relation
-import javax.annotation.processing.SupportedAnnotationTypes
-import javax.annotation.processing.SupportedSourceVersion
 
 class EntityRelationSymbolProcessor(
     private val environment: SymbolProcessorEnvironment,
@@ -176,8 +174,8 @@ class EntityRelationSymbolProcessor(
 
                     val relationName = relationInfo.name.snakeToCamelCase()
 
-                    val fromObj = from.decapitalize()
-                    val toObj = to.decapitalize()
+                    val fromObj = from.replaceFirstChar { it.lowercase() }
+                    val toObj = to.replaceFirstChar { it.lowercase() }
 
                     fileContent.append(
                         """
@@ -208,18 +206,18 @@ class EntityRelationSymbolProcessor(
                         )
                         
                         infix fun ${from}Context.${relationInfo.forwardRelation}(
-                            ${to.decapitalize()}: ${to}Context
+                            ${to.replaceFirstChar { it.lowercase() }}: ${to}Context
                         ): RelationExpression<$from, None, $to> = RelationExpression(
                             relation = ${relationName}Relation,
                             fromId = id,
-                            toId = ${to.decapitalize()}.id
+                            toId = ${to.replaceFirstChar { it.lowercase() }}.id
                         )
 
                         infix fun ${to}Context.${relationInfo.reverseRelation}(
-                            ${from.decapitalize()}: ${from}Context
+                            ${from.replaceFirstChar { it.lowercase() }}: ${from}Context
                         ): RelationExpression<$from, None, $to> = RelationExpression(
                             relation = ${relationName}Relation,
-                            fromId = ${from.decapitalize()}.id,
+                            fromId = ${from.replaceFirstChar { it.lowercase() }}.id,
                             toId = id
                         )
                         
