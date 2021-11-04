@@ -19,9 +19,6 @@ allprojects {
 
     repositories {
         mavenCentral()
-        jcenter()
-        // docker-compose-junit is published on bintray
-        maven("https://dl.bintray.com/palantir/releases")
     }
 
     tasks.withType<JavaCompile>().configureEach {

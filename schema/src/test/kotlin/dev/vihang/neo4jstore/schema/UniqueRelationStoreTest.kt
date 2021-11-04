@@ -1,8 +1,6 @@
 package dev.vihang.neo4jstore.schema
 
 import arrow.core.computations.either
-import com.palantir.docker.compose.DockerComposeExtension
-import com.palantir.docker.compose.connection.waiting.HealthChecks
 import dev.vihang.neo4jstore.client.Config
 import dev.vihang.neo4jstore.client.ConfigRegistry
 import dev.vihang.neo4jstore.client.Neo4jClient
@@ -14,15 +12,19 @@ import dev.vihang.neo4jstore.schema.model.HasId
 import dev.vihang.neo4jstore.schema.model.Relation
 import kotlinx.coroutines.runBlocking
 import org.amshove.kluent.`should be equal to`
-import org.joda.time.Duration
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
-import org.junit.jupiter.api.extension.RegisterExtension
 import org.junit.jupiter.api.fail
+import org.testcontainers.containers.wait.strategy.Wait
+import org.testcontainers.junit.jupiter.Container
+import org.testcontainers.junit.jupiter.Testcontainers
+import java.io.File
+import java.time.Duration
 
+@Testcontainers
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class UniqueRelationStoreTest {
 
@@ -166,18 +168,19 @@ class UniqueRelationStoreTest {
 
     companion object {
 
-        @RegisterExtension
-        @JvmField
-        var docker: DockerComposeExtension = DockerComposeExtension.builder()
-            .file("src/test/resources/docker-compose.yaml")
-            .waitingForService("neo4j", HealthChecks.toHaveAllPortsOpen())
-            .waitingForService(
+        @Container
+        @JvmStatic
+        val environment = KDockerComposeContainer(File("src/test/resources/docker-compose.yaml"))
+            .withExposedService(
                 "neo4j",
-                HealthChecks.toRespond2xxOverHttp(7474) { port ->
-                    port.inFormat("http://\$HOST:\$EXTERNAL_PORT/browser")
-                },
-                Duration.standardSeconds(40L)
+                7687,
+                Wait.forListeningPort().withStartupTimeout(Duration.ofSeconds(60L))
             )
-            .build()
+            .withExposedService(
+                "neo4j",
+                7474,
+                Wait.forListeningPort().withStartupTimeout(Duration.ofSeconds(60)),
+            )
+            .withLocalCompose(true)
     }
 }

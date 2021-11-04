@@ -24,7 +24,7 @@ import java.util.concurrent.TimeUnit.SECONDS
  */
 data class Config(
     val host: String = "localhost",
-    val protocol: String = "bolt"
+    val protocol: String = "bolt",
 )
 
 object ConfigRegistry {
@@ -44,7 +44,7 @@ object Neo4jClient {
             .withMaxConnectionPoolSize(1000)
             .build()
         driver = GraphDatabase.driver(
-            URI("${ConfigRegistry.config.protocol}://${ConfigRegistry.config.host}:7687"),
+            with(ConfigRegistry.config) { URI("$protocol://$host:7687") },
             AuthTokens.none(),
             config
         ) ?: throw Exception("Unable to get Neo4j client driver instance")
