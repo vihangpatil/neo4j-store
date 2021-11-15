@@ -13,7 +13,7 @@ dependencies {
 
     testImplementation("org.testcontainers:junit-jupiter:${Version.testcontainers}")
 
-    testImplementation(kotlin("test"))
+    testImplementation(kotlin("test-junit5"))
     testImplementation("org.junit.jupiter:junit-jupiter:${Version.junit5}")
     testImplementation("org.amshove.kluent:kluent:${Version.kluent}")
 

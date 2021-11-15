@@ -13,10 +13,9 @@ dependencies {
 
     api("io.arrow-kt:arrow-core:${Version.arrow}")
 
-    testImplementation("org.testcontainers:junit-jupiter:${Version.testcontainers}")
-
-    testImplementation(kotlin("test"))
+    testImplementation(kotlin("test-junit5"))
     testImplementation("org.junit.jupiter:junit-jupiter:${Version.junit5}")
+    testImplementation("org.testcontainers:junit-jupiter:${Version.testcontainers}")
     testImplementation("org.amshove.kluent:kluent:${Version.kluent}")
 
     testRuntimeOnly("ch.qos.logback:logback-classic:${Version.logback}")

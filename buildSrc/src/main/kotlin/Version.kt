@@ -3,7 +3,7 @@ object Version {
     const val jackson = "2.13.0"
     const val javaxActivation = "1.1.1"
     const val jaxb = "2.3.1"
-    const val junit5 = "5.6.2"
+    const val junit5 = "5.8.1"
     const val kluent = "1.68"
     const val kotlin = "1.5.31"
     const val kotlinCoroutine = "1.5.2"
