@@ -1,3 +1,13 @@
+plugins {
+    id("de.fayard.refreshVersions") version "0.40.1"
+}
+
+refreshVersions {
+    rejectVersionIf {
+        candidate.stabilityLevel != de.fayard.refreshVersions.core.StabilityLevel.Stable
+    }
+}
+
 rootProject.name = "neo4j-store"
 
 include(

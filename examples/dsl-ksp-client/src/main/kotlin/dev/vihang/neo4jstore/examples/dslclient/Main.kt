@@ -1,6 +1,6 @@
 package dev.vihang.neo4jstore.examples.dslclient
 
-import arrow.core.computations.either
+import arrow.core.continuations.either
 import dev.vihang.neo4jstore.client.Config
 import dev.vihang.neo4jstore.client.ConfigRegistry
 import dev.vihang.neo4jstore.client.Neo4jClient

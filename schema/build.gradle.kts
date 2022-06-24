@@ -8,17 +8,19 @@ dependencies {
     api(project(":error"))
     api(project(":schema-model"))
 
-    api("org.neo4j.driver:neo4j-java-driver:${Version.neo4jDriver}")
-    implementation("org.neo4j:neo4j-slf4j:${Version.neo4j}")
+    api("org.neo4j.driver:neo4j-java-driver:_")
+    implementation("org.neo4j:neo4j-slf4j:_")
 
-    api("io.arrow-kt:arrow-core:${Version.arrow}")
+    api("io.arrow-kt:arrow-core:_")
 
     testImplementation(kotlin("test-junit5"))
-    testImplementation("org.junit.jupiter:junit-jupiter:${Version.junit5}")
-    testImplementation("org.testcontainers:junit-jupiter:${Version.testcontainers}")
-    testImplementation("org.amshove.kluent:kluent:${Version.kluent}")
+    testImplementation(Testing.junit.jupiter)
+    testImplementation("org.amshove.kluent:kluent:_")
 
-    testRuntimeOnly("ch.qos.logback:logback-classic:${Version.logback}")
+    testImplementation("org.testcontainers:junit-jupiter:_")
+    testImplementation("org.testcontainers:neo4j:_")
+
+    testRuntimeOnly("ch.qos.logback:logback-classic:_")
 }
 
 tasks.test {

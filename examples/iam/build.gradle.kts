@@ -1,7 +1,7 @@
 plugins {
     `java-library`
     kotlin("jvm")
-    id("com.google.devtools.ksp") version Version.kotlinSymbolProcessing
+    id("com.google.devtools.ksp")
 }
 
 group = "dev.vihang.iam"
@@ -11,15 +11,25 @@ dependencies {
     compileOnly(project(":dsl-model-annotation"))
     ksp(project(":dsl-annotation-processor"))
 
-    testImplementation("org.testcontainers:junit-jupiter:${Version.testcontainers}")
-
     testImplementation(kotlin("test-junit5"))
-    testImplementation("org.junit.jupiter:junit-jupiter:${Version.junit5}")
-    testImplementation("org.amshove.kluent:kluent:${Version.kluent}")
+    testImplementation(Testing.junit.jupiter)
+    testImplementation("org.amshove.kluent:kluent:_")
 
-    testRuntimeOnly("ch.qos.logback:logback-classic:${Version.logback}")
+    testImplementation("org.testcontainers:junit-jupiter:_")
+    testImplementation("org.testcontainers:neo4j:_")
+
+    testRuntimeOnly("ch.qos.logback:logback-classic:_")
 }
 
 tasks.test {
     useJUnitPlatform()
+}
+
+kotlin {
+    sourceSets.main {
+        kotlin.srcDir("build/generated/ksp/main/kotlin")
+    }
+    sourceSets.test {
+        kotlin.srcDir("build/generated/ksp/test/kotlin")
+    }
 }

@@ -1,7 +1,7 @@
 plugins {
     `java-library`
     kotlin("jvm")
-    id("com.google.devtools.ksp") version Version.kotlinSymbolProcessing
+    id("com.google.devtools.ksp")
 }
 
 dependencies {

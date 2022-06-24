@@ -1,6 +1,6 @@
 package dev.vihang.neo4jstore.schema
 
-import arrow.core.computations.either
+import arrow.core.continuations.either
 import dev.vihang.neo4jstore.client.Config
 import dev.vihang.neo4jstore.client.ConfigRegistry
 import dev.vihang.neo4jstore.client.Neo4jClient
@@ -18,11 +18,10 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.fail
-import org.testcontainers.containers.wait.strategy.Wait
+import org.testcontainers.containers.Neo4jContainer
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
-import java.io.File
-import java.time.Duration
+import org.testcontainers.utility.DockerImageName
 
 @Testcontainers
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -157,7 +156,7 @@ class UniqueRelationStoreTest {
 
     @BeforeAll
     fun beforeAll() {
-        ConfigRegistry.config = Config()
+        ConfigRegistry.config = Config(port = neo4jContainer.firstMappedPort)
         Neo4jClient.start()
     }
 
@@ -170,17 +169,7 @@ class UniqueRelationStoreTest {
 
         @Container
         @JvmStatic
-        val environment = KDockerComposeContainer(File("src/test/resources/docker-compose.yaml"))
-            .withExposedService(
-                "neo4j",
-                7687,
-                Wait.forListeningPort().withStartupTimeout(Duration.ofSeconds(60L))
-            )
-            .withExposedService(
-                "neo4j",
-                7474,
-                Wait.forListeningPort().withStartupTimeout(Duration.ofSeconds(60)),
-            )
-            .withLocalCompose(true)
+        val neo4jContainer: Neo4jContainer<*> = Neo4jContainer(DockerImageName.parse("neo4j:4.4.8"))
+            .withoutAuthentication()
     }
 }

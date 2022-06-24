@@ -11,13 +11,8 @@ ifdef::env-github[]
 endif::[]
 
 image:https://img.shields.io/github/workflow/status/vihangpatil/neo4j-store/Build/main?logo=github[Build Status]
-image:https://img.shields.io/badge/kotlin-1.5.31-blue.svg?logo=kotlin[Kotlin version badge]
+image:https://img.shields.io/badge/kotlin-1.7.0-blue.svg?logo=kotlin[Kotlin version badge]
 image:https://img.shields.io/github/license/vihangpatil/neo4j-store.svg[GitHub license]
-
-[WARNING]
-====
-Experimental
-====
 
 link:https://neo4j.com/neo4j-graph-database/[Neo4j Graph Database] client for link:https://kotlinlang.org/[Koltin] + link:https://gradle.org/[Gradle] project. +
 Layered architecture exposing multiple levels of API.

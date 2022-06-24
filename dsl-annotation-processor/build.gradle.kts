@@ -8,9 +8,9 @@ dependencies {
 
     implementation(project(":dsl-model-annotation"))
 
-    implementation("com.squareup:kotlinpoet:${Version.kotlinPoet}")
+    implementation(Square.kotlinPoet)
 
-    implementation("com.google.devtools.ksp:symbol-processing-api:${Version.kotlinSymbolProcessing}")
+    implementation("com.google.devtools.ksp:symbol-processing-api:_")
 }
 
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
